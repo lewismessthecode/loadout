@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from "react";
-import { Boxes, Clock, HelpCircle, Layers, Moon, Puzzle, type LucideIcon } from "lucide-react";
+import { Boxes, Clock, HelpCircle, Layers, Monitor, Moon, Puzzle, Sun, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sameFilter, type Counts, type Filter, type View } from "@/lib/filter";
 import type { AgentInfo } from "@/lib/types";
+import { useTheme, type ThemePref } from "@/lib/theme";
 
 const VIEWS: { view: View; label: string; icon: LucideIcon }[] = [
   { view: "all", label: "All skills", icon: Layers },
@@ -37,6 +38,35 @@ function Item({
       <span className="flex min-w-0 flex-1 items-center gap-2 truncate">{children}</span>
       <span className="text-[11px] tabular-nums text-faint">{count}</span>
     </button>
+  );
+}
+
+const THEMES: { pref: ThemePref; label: string; icon: LucideIcon }[] = [
+  { pref: "system", label: "System", icon: Monitor },
+  { pref: "light", label: "Light", icon: Sun },
+  { pref: "dark", label: "Dark", icon: Moon },
+];
+
+function ThemeSwitch() {
+  const [pref, choose] = useTheme();
+  return (
+    <div role="radiogroup" aria-label="Appearance" className="flex rounded-md bg-hover p-0.5">
+      {THEMES.map(({ pref: p, label, icon: Icon }) => (
+        <button
+          key={p}
+          role="radio"
+          aria-checked={pref === p}
+          title={label}
+          onClick={() => choose(p)}
+          className={cn(
+            "flex h-6 flex-1 items-center justify-center rounded text-muted",
+            pref === p ? "bg-bg text-fg shadow-sm" : "hover:text-fg",
+          )}
+        >
+          <Icon size={13} />
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -141,6 +171,9 @@ export function Sidebar({
           </Section>
         )}
       </nav>
+      <div className="shrink-0 border-t border-line p-2.5">
+        <ThemeSwitch />
+      </div>
     </aside>
   );
 }

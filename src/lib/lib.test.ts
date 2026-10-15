@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { applyFilters, countAll, ALL } from "./filter";
 import { buildGrid, level, monthLabels } from "./heat";
+import { resolveTheme } from "./theme";
 import type { Skill } from "./types";
 
 const NOW = Date.parse("2026-10-15T12:00:00Z");
@@ -85,5 +86,14 @@ describe("heat grid", () => {
     const labels = monthLabels(buildGrid({}, 53, today));
     expect(labels.length).toBeGreaterThanOrEqual(11);
     labels.forEach((l, i) => i > 0 && expect(l.col - labels[i - 1].col).toBeGreaterThanOrEqual(3));
+  });
+});
+
+describe("theme", () => {
+  it("follows the system only when the preference is system", () => {
+    expect(resolveTheme("system", true)).toBe("dark");
+    expect(resolveTheme("system", false)).toBe("light");
+    expect(resolveTheme("light", true)).toBe("light");
+    expect(resolveTheme("dark", false)).toBe("dark");
   });
 });
