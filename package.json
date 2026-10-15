@@ -8,7 +8,9 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "test": "vitest run"
+    "test": "vitest run",
+    "icon": "node scripts/build-icon.mjs && tauri icon design/icon-1024.png && rm -rf src-tauri/icons/android src-tauri/icons/ios",
+    "release": "tauri build --target universal-apple-darwin && sh scripts/make-dmg.sh"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",

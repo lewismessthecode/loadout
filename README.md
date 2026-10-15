@@ -19,19 +19,19 @@ Everything runs on your machine. The app makes no network calls of its own. The 
 
 ## Install
 
-1. Download `SkillsHub_<version>_universal.dmg` from the [latest release](https://github.com/lewismessthecode/skillshub/releases/latest).
+1. Download `SkillsHub_0.1.0_universal.dmg` from the [latest release](https://github.com/lewismessthecode/skillshub/releases/latest).
 2. Open the DMG and drag SkillsHub to Applications.
 3. Open SkillsHub.
 
 The build is universal, so it runs natively on Apple silicon and Intel. It needs macOS 12 or later.
 
-The app is signed ad hoc and is not notarized, because that needs a paid Apple Developer account. macOS may refuse the first launch of a downloaded copy. Right-click the app, choose Open, and confirm once. If you prefer the terminal:
+The app is signed ad hoc and is not notarized, because that needs a paid Apple Developer account. A copy downloaded through a browser carries a quarantine flag, and macOS may refuse its first launch. Clear the flag once:
 
 ```sh
 xattr -dr com.apple.quarantine /Applications/SkillsHub.app
 ```
 
-After that it opens normally. SkillsHub never asks for Full Disk Access, Automation, Accessibility or Screen Recording. It only reads files under your home folder that your own user can already read.
+You can also open System Settings, go to Privacy & Security, and press Open Anyway after the first refusal. A copy you build yourself never gets the flag and opens straight away. SkillsHub never asks for Full Disk Access, Automation, Accessibility or Screen Recording. It only reads files under your home folder that your own user can already read.
 
 ## What it does
 
@@ -71,10 +71,10 @@ To build the installable app and DMG for both architectures:
 
 ```sh
 rustup target add aarch64-apple-darwin x86_64-apple-darwin
-pnpm tauri build --target universal-apple-darwin
+pnpm release
 ```
 
-The output is under `src-tauri/target/universal-apple-darwin/release/bundle/`.
+That runs `tauri build` for a universal binary, then `scripts/make-dmg.sh` wraps the app in a DMG with `hdiutil`. The output is under `src-tauri/target/universal-apple-darwin/release/bundle/`, in `macos/` and `dmg/`. The DMG is built without Finder scripting on purpose, so the build asks for no Automation permission.
 
 Tests:
 
@@ -87,7 +87,7 @@ Some Rust tests are ignored by default because they touch your real home folder.
 
 ## The icon
 
-`design/icon.svg` is the source. `pnpm exec node scripts/build-icon.mjs` renders it to `design/icon-1024.png`, and `pnpm tauri icon design/icon-1024.png` regenerates everything under `src-tauri/icons`.
+`design/icon.svg` is the source. `pnpm icon` renders it to `design/icon-1024.png` and regenerates everything under `src-tauri/icons`.
 
 ## Stack
 
