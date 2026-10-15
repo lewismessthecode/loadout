@@ -1,5 +1,6 @@
 import { useEffect, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { X } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 type Variant = "default" | "primary" | "ghost" | "danger";
@@ -49,6 +50,7 @@ export function Dialog({
   children: ReactNode;
   width?: number;
 }) {
+  const { t } = useI18n();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -66,7 +68,7 @@ export function Dialog({
       >
         <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
           <h2 className="text-[14px] font-semibold">{title}</h2>
-          <button onClick={onClose} aria-label="Close" className="rounded p-1 text-muted hover:bg-hover hover:text-fg">
+          <button onClick={onClose} aria-label={t("common.close")} className="rounded p-1 text-muted hover:bg-hover hover:text-fg">
             <X size={14} />
           </button>
         </div>

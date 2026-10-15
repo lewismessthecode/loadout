@@ -2,15 +2,17 @@ import { useState, type ReactNode } from "react";
 import { Boxes, Clock, HelpCircle, Layers, Monitor, Moon, Puzzle, Sun, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sameFilter, type Counts, type Filter, type View } from "@/lib/filter";
+import { agentLabel } from "@/lib/format";
+import { useI18n, type LangPref, type MessageKey } from "@/lib/i18n";
 import type { AgentInfo } from "@/lib/types";
 import { useTheme, type ThemePref } from "@/lib/theme";
 
-const VIEWS: { view: View; label: string; icon: LucideIcon }[] = [
-  { view: "all", label: "All skills", icon: Layers },
-  { view: "recent", label: "Used recently", icon: Clock },
-  { view: "stale", label: "Unused 30d+", icon: Moon },
-  { view: "plugins", label: "Plugins", icon: Puzzle },
-  { view: "unknown", label: "Unknown source", icon: HelpCircle },
+const VIEWS: { view: View; label: MessageKey; icon: LucideIcon }[] = [
+  { view: "all", label: "sidebar.views.all", icon: Layers },
+  { view: "recent", label: "sidebar.views.recent", icon: Clock },
+  { view: "stale", label: "sidebar.views.stale", icon: Moon },
+  { view: "plugins", label: "sidebar.views.plugins", icon: Puzzle },
+  { view: "unknown", label: "sidebar.views.unknown", icon: HelpCircle },
 ];
 
 function Item({
@@ -41,22 +43,24 @@ function Item({
   );
 }
 
-const THEMES: { pref: ThemePref; label: string; icon: LucideIcon }[] = [
-  { pref: "system", label: "System", icon: Monitor },
-  { pref: "light", label: "Light", icon: Sun },
-  { pref: "dark", label: "Dark", icon: Moon },
+const THEMES: { pref: ThemePref; label: MessageKey; icon: LucideIcon }[] = [
+  { pref: "system", label: "theme.system", icon: Monitor },
+  { pref: "light", label: "theme.light", icon: Sun },
+  { pref: "dark", label: "theme.dark", icon: Moon },
 ];
 
 function ThemeSwitch() {
+  const { t } = useI18n();
   const [pref, choose] = useTheme();
   return (
-    <div role="radiogroup" aria-label="Appearance" className="flex rounded-md bg-hover p-0.5">
+    <div role="radiogroup" aria-label={t("theme.label")} className="flex rounded-md bg-hover p-0.5">
       {THEMES.map(({ pref: p, label, icon: Icon }) => (
         <button
           key={p}
           role="radio"
           aria-checked={pref === p}
-          title={label}
+          aria-label={t(label)}
+          title={t(label)}
           onClick={() => choose(p)}
           className={cn(
             "flex h-6 flex-1 items-center justify-center rounded text-muted",
@@ -64,6 +68,34 @@ function ThemeSwitch() {
           )}
         >
           <Icon size={13} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const LANG_OPTIONS: { pref: LangPref; label?: string }[] = [
+  { pref: "system" },
+  { pref: "en", label: "English" },
+  { pref: "zh", label: "中文" },
+];
+
+function LangSwitch() {
+  const { pref, setPref, t } = useI18n();
+  return (
+    <div role="radiogroup" aria-label={t("lang.label")} className="flex rounded-md bg-hover p-0.5">
+      {LANG_OPTIONS.map(({ pref: p, label }) => (
+        <button
+          key={p}
+          role="radio"
+          aria-checked={pref === p}
+          onClick={() => setPref(p)}
+          className={cn(
+            "h-6 min-w-0 flex-1 truncate rounded px-1 text-[11px] text-muted",
+            pref === p ? "bg-bg text-fg shadow-sm" : "hover:text-fg",
+          )}
+        >
+          {p === "system" ? t("lang.system") : label}
         </button>
       ))}
     </div>
@@ -90,6 +122,7 @@ export function Sidebar({
   counts: Counts;
   agents: AgentInfo[];
 }) {
+  const { t } = useI18n();
   const [allSources, setAllSources] = useState(false);
   const visibleAgents = agents.filter((a) => a.detected || (counts.agents[a.id] ?? 0) > 0);
   const sources = allSources ? counts.sources : counts.sources.slice(0, 8);
@@ -112,12 +145,12 @@ export function Sidebar({
               onClick={() => onFilter({ kind: "view", view })}
             >
               <Icon size={14} className="shrink-0 text-muted" />
-              {label}
+              {t(label)}
             </Item>
           ))}
         </div>
 
-        <Section title="Agents">
+        <Section title={t("common.agents")}>
           {visibleAgents.map((a) => (
             <Item
               key={a.id}
@@ -126,13 +159,13 @@ export function Sidebar({
               onClick={() => onFilter({ kind: "agent", id: a.id })}
             >
               <span className={cn("size-1.5 shrink-0 rounded-full", a.detected ? "heat-3" : "bg-faint")} />
-              {a.label}
+              {agentLabel(a.id, agents, t)}
             </Item>
           ))}
         </Section>
 
         {counts.sources.length > 0 && (
-          <Section title="Sources">
+          <Section title={t("sidebar.sources")}>
             {sources.map(([repo, n]) => (
               <Item
                 key={repo}
@@ -149,14 +182,14 @@ export function Sidebar({
                 onClick={() => setAllSources((v) => !v)}
                 className="mt-0.5 px-2 text-[12px] text-muted hover:text-fg"
               >
-                {allSources ? "Show less" : `Show ${counts.sources.length - 8} more`}
+                {allSources ? t("common.showLess") : t("sidebar.showMore", { n: counts.sources.length - 8 })}
               </button>
             )}
           </Section>
         )}
 
         {counts.tags.length > 0 && (
-          <Section title="Tags">
+          <Section title={t("common.tags")}>
             {counts.tags.map(([tag, n]) => (
               <Item
                 key={tag}
@@ -171,8 +204,9 @@ export function Sidebar({
           </Section>
         )}
       </nav>
-      <div className="shrink-0 border-t border-line p-2.5">
+      <div className="shrink-0 space-y-1.5 border-t border-line p-2.5">
         <ThemeSwitch />
+        <LangSwitch />
       </div>
     </aside>
   );

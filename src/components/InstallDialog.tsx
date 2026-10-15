@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { agentLabel } from "@/lib/format";
+import { useI18n } from "@/lib/i18n";
 import type { AgentInfo } from "@/lib/types";
 import { Button, Dialog } from "./ui";
 
@@ -19,6 +21,7 @@ export function InstallDialog({
   preset: InstallPreset;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const targets = agents.filter((a) => a.installable);
   const [repo, setRepo] = useState(preset.repo ?? "");
@@ -45,7 +48,7 @@ export function InstallDialog({
     try {
       const code = await api.install(repo, [...chosen], skill || undefined);
       setState(code === 0 ? "ok" : "failed");
-      if (code !== 0) setLog((l) => [...l, `exit code ${code}`]);
+      if (code !== 0) setLog((l) => [...l, t("install.exitCode", { code })]);
     } catch (e) {
       setLog((l) => [...l, String(e)]);
       setState("failed");
@@ -61,21 +64,21 @@ export function InstallDialog({
     });
 
   return (
-    <Dialog title="Install skills" onClose={state === "running" ? () => {} : onClose} width={540}>
+    <Dialog title={t("install.title")} onClose={state === "running" ? () => {} : onClose} width={540}>
       <div className="space-y-3">
         <label className="block">
-          <div className="mb-1 text-[12px] text-muted">Repository (npx skills add)</div>
+          <div className="mb-1 text-[12px] text-muted">{t("install.repo")}</div>
           <input
             autoFocus
             value={repo}
             onChange={(e) => setRepo(e.target.value)}
-            placeholder="owner/repo or https://github.com/owner/repo"
+            placeholder={t("install.repoPlaceholder")}
             disabled={state === "running"}
             className="h-8 w-full rounded-md border border-line bg-bg px-2.5 text-[13px] outline-none focus:border-faint"
           />
         </label>
         <label className="block">
-          <div className="mb-1 text-[12px] text-muted">Skill name (optional, default: all in repo)</div>
+          <div className="mb-1 text-[12px] text-muted">{t("install.skillName")}</div>
           <input
             value={skill}
             onChange={(e) => setSkill(e.target.value)}
@@ -84,17 +87,17 @@ export function InstallDialog({
           />
         </label>
         <div>
-          <div className="mb-1 text-[12px] text-muted">Install to</div>
+          <div className="mb-1 text-[12px] text-muted">{t("install.installTo")}</div>
           <div className="flex flex-wrap gap-x-4 gap-y-1">
             {targets.map((a) => (
               <label key={a.id} className="flex items-center gap-1.5 text-[13px]">
                 <input type="checkbox" checked={chosen.has(a.id)} onChange={() => toggle(a.id)} disabled={state === "running"} />
-                {a.label}
-                {preset.installedAgents?.includes(a.id) && <span className="text-[11px] text-faint">installed</span>}
+                {agentLabel(a.id, agents, t)}
+                {preset.installedAgents?.includes(a.id) && <span className="text-[11px] text-faint">{t("install.alreadyInstalled")}</span>}
               </label>
             ))}
           </div>
-          <div className="mt-1 text-[11.5px] text-faint">Installed globally (-g). With none selected, the CLI uses its own defaults.</div>
+          <div className="mt-1 text-[11.5px] text-faint">{t("install.globalNote")}</div>
         </div>
 
         {log.length > 0 && (
@@ -108,15 +111,15 @@ export function InstallDialog({
 
         <div className="flex items-center justify-between">
           <span className="text-[12px] text-muted">
-            {state === "ok" && "Installed. List refreshed."}
-            {state === "failed" && <span className="text-danger">Install failed.</span>}
+            {state === "ok" && t("install.ok")}
+            {state === "failed" && <span className="text-danger">{t("install.failed")}</span>}
           </span>
           <div className="flex gap-2">
             <Button onClick={onClose} disabled={state === "running"}>
-              {state === "ok" ? "Done" : "Cancel"}
+              {state === "ok" ? t("install.done") : t("common.cancel")}
             </Button>
             <Button variant="primary" onClick={run} disabled={!repo.trim() || state === "running"}>
-              {state === "running" ? "Installing…" : "Install"}
+              {state === "running" ? t("install.installing") : t("common.install")}
             </Button>
           </div>
         </div>

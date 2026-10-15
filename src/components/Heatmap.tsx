@@ -1,8 +1,7 @@
 import { useMemo } from "react";
 import { buildGrid, monthLabels } from "@/lib/heat";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-
-const plural = (n: number) => `${n} use${n === 1 ? "" : "s"}`;
 
 export function MiniHeat({ daily, weeks = 12 }: { daily: Record<string, number>; weeks?: number }) {
   const grid = useMemo(() => buildGrid(daily, weeks), [daily, weeks]);
@@ -22,8 +21,13 @@ export function MiniHeat({ daily, weeks = 12 }: { daily: Record<string, number>;
 }
 
 export function FullHeat({ daily, weeks = 53 }: { daily: Record<string, number>; weeks?: number }) {
+  const { lang, t } = useI18n();
   const grid = useMemo(() => buildGrid(daily, weeks), [daily, weeks]);
-  const labels = useMemo(() => monthLabels(grid), [grid]);
+  const labels = useMemo(() => {
+    const fmt = new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en", { month: "short" });
+    return monthLabels(grid).map((l) => ({ col: l.col, label: fmt.format(new Date(2000, l.month, 1)) }));
+  }, [grid, lang]);
+  const uses = (n: number) => t(n === 1 ? "common.uses.one" : "common.uses.other", { n });
   return (
     <div>
       <div className="relative mb-1 h-3 text-[10px] text-faint">
@@ -40,17 +44,17 @@ export function FullHeat({ daily, weeks = 53 }: { daily: Record<string, number>;
         {grid.flat().map((c) => (
           <div
             key={c.date}
-            title={c.future ? undefined : `${c.date}: ${plural(c.count)}`}
+            title={c.future ? undefined : `${c.date}: ${uses(c.count)}`}
             className={cn("aspect-square rounded-[2px]", c.future ? "opacity-0" : `heat-${c.level}`)}
           />
         ))}
       </div>
       <div className="mt-2 flex items-center justify-end gap-1 text-[10px] text-faint">
-        Less
+        {t("heat.less")}
         {[0, 1, 2, 3, 4].map((l) => (
           <span key={l} className={cn("size-[9px] rounded-[2px]", `heat-${l}`)} />
         ))}
-        More
+        {t("heat.more")}
       </div>
     </div>
   );

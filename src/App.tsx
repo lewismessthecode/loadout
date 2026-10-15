@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Plus, RefreshCw, Search } from "lucide-react";
 import { api } from "@/lib/api";
-import { ALL, applyFilters, countAll, type Filter, type Sort, type SortKey } from "@/lib/filter";
-import type { Skill } from "@/lib/types";
+import { ALL, applyFilters, countAll, type Filter, type Sort, type SortKey, type View } from "@/lib/filter";
+import { agentLabel } from "@/lib/format";
+import { useI18n, type MessageKey } from "@/lib/i18n";
+import type { AgentInfo, Skill } from "@/lib/types";
 import { Sidebar } from "@/components/Sidebar";
 import { SkillList } from "@/components/SkillList";
 import { DetailPanel } from "@/components/DetailPanel";
@@ -15,12 +17,20 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: true, retry: false } },
 });
 
-function filterTitle(f: Filter): string {
+const VIEW_TITLES: Record<View, MessageKey> = {
+  all: "sidebar.views.all",
+  recent: "sidebar.views.recent",
+  stale: "app.filter.stale",
+  unknown: "sidebar.views.unknown",
+  plugins: "sidebar.views.plugins",
+};
+
+function filterTitle(f: Filter, agents: AgentInfo[], t: (key: MessageKey) => string): string {
   switch (f.kind) {
     case "view":
-      return { all: "All skills", recent: "Used recently", stale: "Unused for 30+ days", unknown: "Unknown source", plugins: "Plugins" }[f.view];
+      return t(VIEW_TITLES[f.view]);
     case "agent":
-      return f.id;
+      return agentLabel(f.id, agents, t);
     case "source":
       return f.repo;
     case "tag":
@@ -29,6 +39,7 @@ function filterTitle(f: Filter): string {
 }
 
 function Shell() {
+  const { t } = useI18n();
   const skillsQ = useQuery({ queryKey: ["skills"], queryFn: api.skills });
   const agentsQ = useQuery({ queryKey: ["agents"], queryFn: api.agents, staleTime: Infinity });
   const heatQ = useQuery({
@@ -85,7 +96,7 @@ function Shell() {
         <div data-tauri-drag-region className="flex h-[52px] shrink-0 items-end gap-3 px-5 pb-2">
           <div className="pointer-events-none min-w-0 flex-1">
             <h1 className="truncate text-[15px] leading-none font-semibold">
-              {filter.kind === "agent" ? (agents.find((a) => a.id === filter.id)?.label ?? filter.id) : filterTitle(filter)}
+              {filterTitle(filter, agents, t)}
             </h1>
           </div>
           <div className="relative">
@@ -94,14 +105,14 @@ function Shell() {
               ref={search}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search"
+              placeholder={t("common.search")}
               className="h-7 w-[190px] rounded-md border border-line bg-bg pr-2 pl-7 text-[13px] outline-none placeholder:text-faint focus:border-faint"
             />
           </div>
           <Button
             variant="ghost"
-            aria-label="Rescan"
-            title="Rescan skills and usage"
+            aria-label={t("app.rescan")}
+            title={t("app.rescanTitle")}
             onClick={() => {
               queryClient.invalidateQueries({ queryKey: ["skills"] });
               queryClient.invalidateQueries({ queryKey: ["agents"] });
@@ -112,24 +123,22 @@ function Shell() {
             <RefreshCw size={13} className={skillsQ.isFetching ? "animate-spin" : ""} />
           </Button>
           <Button variant="primary" onClick={() => setInstall({})}>
-            <Plus size={13} /> Install
+            <Plus size={13} /> {t("common.install")}
           </Button>
         </div>
 
         <div className="flex shrink-0 items-center gap-3 px-5 pt-1 pb-3 text-[12px] text-muted">
-          <span>
-            {visible.length} of {skills.length} skills · {used} used in logs
-          </span>
+          <span>{t("app.summary", { n: visible.length, total: skills.length, used })}</span>
           <span className="flex-1" />
           {heatQ.data && (
-            <span className="flex items-center gap-2" title="Skill uses across all agents, last 26 weeks">
+            <span className="flex items-center gap-2" title={t("app.heatTitle")}>
               <MiniHeat daily={heatQ.data} weeks={26} />
             </span>
           )}
         </div>
 
         {skillsQ.isLoading ? (
-          <div className="grid flex-1 place-items-center text-muted">Scanning skills…</div>
+          <div className="grid flex-1 place-items-center text-muted">{t("app.scanning")}</div>
         ) : skillsQ.isError ? (
           <div className="selectable grid flex-1 place-items-center px-8 text-center text-danger">{String(skillsQ.error)}</div>
         ) : (

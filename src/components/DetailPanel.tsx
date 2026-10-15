@@ -3,7 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { ArrowUpRight, Download, FolderOpen, Link2, Trash2, X } from "lucide-react";
 import { api } from "@/lib/api";
-import { homeRelative, relTime, shortDate } from "@/lib/format";
+import { agentLabel, homeRelative } from "@/lib/format";
+import { useI18n } from "@/lib/i18n";
 import type { AgentInfo, Skill } from "@/lib/types";
 import { Button, Chip, Dialog } from "./ui";
 import { FullHeat } from "./Heatmap";
@@ -44,8 +45,10 @@ export function DetailPanel({
   onClose: () => void;
   onInstallElsewhere: (s: Skill) => void;
 }) {
+  const { t, rel, date } = useI18n();
   const qc = useQueryClient();
-  const label = (id: string) => agents.find((a) => a.id === id)?.label ?? id;
+  const label = (id: string) => agentLabel(id, agents, t);
+  const uses = (n: number) => t(n === 1 ? "common.uses.one" : "common.uses.other", { n });
   const detail = useQuery({ queryKey: ["skill", skill.id], queryFn: () => api.detail(skill.id) });
   const [pending, setPending] = useState<{ paths: string[]; scope?: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -82,15 +85,15 @@ export function DetailPanel({
   const body = detail.data ? stripFrontmatter(detail.data.skillMd) : "";
   const usedBy = Object.entries(skill.usage.byAgent).sort((a, b) => b[1] - a[1]);
   const addTag = () => {
-    const t = tagDraft.trim();
-    if (t && !skill.tags.includes(t)) tagMut.mutate([...skill.tags, t]);
+    const tag = tagDraft.trim();
+    if (tag && !skill.tags.includes(tag)) tagMut.mutate([...skill.tags, tag]);
     setTagDraft("");
   };
 
   return (
     <aside className="flex h-full w-[420px] shrink-0 flex-col border-l border-line bg-panel">
       <div data-tauri-drag-region className="flex h-[52px] shrink-0 items-end justify-end px-3 pb-2">
-        <button onClick={onClose} aria-label="Close details" className="rounded p-1 text-muted hover:bg-hover hover:text-fg">
+        <button onClick={onClose} aria-label={t("detail.close")} className="rounded p-1 text-muted hover:bg-hover hover:text-fg">
           <X size={15} />
         </button>
       </div>
@@ -99,39 +102,39 @@ export function DetailPanel({
         <div className="px-5 pb-4">
           <h2 className="selectable text-[18px] leading-tight font-semibold">{skill.name}</h2>
           <p className={`selectable mt-1.5 text-[13px] leading-snug text-muted ${descOpen ? "" : "line-clamp-4"}`}>
-            {skill.description || "No description."}
+            {skill.description || t("detail.noDescription")}
           </p>
           {skill.description.length > 220 && (
             <button onClick={() => setDescOpen((v) => !v)} className="mt-1 text-[12px] text-muted hover:text-fg">
-              {descOpen ? "Show less" : "Show more"}
+              {descOpen ? t("common.showLess") : t("common.showMore")}
             </button>
           )}
           <div className="mt-3 flex flex-wrap gap-1.5">
             <Button onClick={() => api.reveal(skill.canonicalDir)}>
-              <FolderOpen size={13} /> Reveal
+              <FolderOpen size={13} /> {t("detail.reveal")}
             </Button>
             <Button onClick={() => onInstallElsewhere(skill)} disabled={!skill.source || skill.source.kind === "plugin"}>
-              <Download size={13} /> Install to…
+              <Download size={13} /> {t("detail.installTo")}
             </Button>
             <Button
               variant="danger"
               disabled={pluginOnly}
-              title={pluginOnly ? "Managed by a plugin. Uninstall the plugin from its agent." : "Move to Trash"}
+              title={pluginOnly ? t("detail.deleteManaged") : t("remove.confirm")}
               onClick={() => askRemove()}
             >
-              <Trash2 size={13} /> Delete
+              <Trash2 size={13} /> {t("common.delete")}
             </Button>
           </div>
           {error && <div className="selectable mt-2 text-[12px] text-danger">{error}</div>}
         </div>
 
         <Section
-          title="Activity"
-          right={<span className="text-[11px] text-muted">{skill.usage.total} uses</span>}
+          title={t("detail.activity")}
+          right={<span className="text-[11px] text-muted">{uses(skill.usage.total)}</span>}
         >
           <FullHeat daily={skill.usage.daily} />
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-muted">
-            <span>Last used {relTime(skill.usage.lastUsed)}</span>
+            <span>{t("detail.lastUsed", { when: rel(skill.usage.lastUsed) })}</span>
             {usedBy.map(([a, n]) => (
               <span key={a}>
                 {label(a)} <span className="text-fg tabular-nums">{n}</span>
@@ -140,8 +143,8 @@ export function DetailPanel({
           </div>
         </Section>
 
-        <Section title="Details">
-          <Row k="Source">
+        <Section title={t("detail.details")}>
+          <Row k={t("common.source")}>
             {skill.source ? (
               skill.source.url ? (
                 <button
@@ -154,20 +157,20 @@ export function DetailPanel({
                 skill.source.repo
               )
             ) : (
-              <span className="text-muted">Unknown (local)</span>
+              <span className="text-muted">{t("detail.unknownLocal")}</span>
             )}
           </Row>
-          {skill.source && <Row k="Author">{skill.source.author}</Row>}
-          <Row k="Installed">{shortDate(skill.installedAt)}</Row>
-          {skill.updatedAt && skill.updatedAt !== skill.installedAt && <Row k="Updated">{shortDate(skill.updatedAt)}</Row>}
+          {skill.source && <Row k={t("detail.author")}>{skill.source.author}</Row>}
+          <Row k={t("common.installed")}>{date(skill.installedAt)}</Row>
+          {skill.updatedAt && skill.updatedAt !== skill.installedAt && <Row k={t("detail.updated")}>{date(skill.updatedAt)}</Row>}
         </Section>
 
-        <Section title="Installed in">
+        <Section title={t("detail.installedIn")}>
           <ul className="space-y-1">
             {skill.installs.map((i) => (
               <li key={i.path} className="group flex items-center gap-2 text-[12px]">
                 <Chip className="shrink-0">{label(i.agent)}</Chip>
-                {i.kind === "symlink" && <Link2 size={12} className="shrink-0 text-faint" aria-label="symlink" />}
+                {i.kind === "symlink" && <Link2 size={12} className="shrink-0 text-faint" aria-label={t("detail.symlink")} />}
                 <button
                   onClick={() => api.reveal(i.path)}
                   title={i.path}
@@ -178,7 +181,7 @@ export function DetailPanel({
                 {!i.plugin && skill.installs.length > 1 && (
                   <button
                     onClick={() => askRemove([i.path])}
-                    aria-label={`Remove from ${label(i.agent)}`}
+                    aria-label={t("detail.removeFrom", { agent: label(i.agent) })}
                     className="shrink-0 rounded p-1 text-faint opacity-0 group-hover:opacity-100 hover:bg-hover hover:text-danger"
                   >
                     <Trash2 size={12} />
@@ -189,19 +192,19 @@ export function DetailPanel({
           </ul>
         </Section>
 
-        <Section title="Tags">
+        <Section title={t("common.tags")}>
           <div className="flex flex-wrap items-center gap-1.5">
-            {skill.autoTags.map((t) => (
-              <Chip key={`a-${t}`} title="From SKILL.md">
-                {t}
+            {skill.autoTags.map((tag) => (
+              <Chip key={`a-${tag}`} title={t("detail.autoTag")}>
+                {tag}
               </Chip>
             ))}
-            {skill.tags.map((t) => (
-              <Chip key={t} className="gap-1 text-fg">
-                {t}
+            {skill.tags.map((tag) => (
+              <Chip key={tag} className="gap-1 text-fg">
+                {tag}
                 <button
-                  aria-label={`Remove tag ${t}`}
-                  onClick={() => tagMut.mutate(skill.tags.filter((x) => x !== t))}
+                  aria-label={t("detail.removeTag", { tag })}
+                  onClick={() => tagMut.mutate(skill.tags.filter((x) => x !== tag))}
                   className="text-faint hover:text-danger"
                 >
                   <X size={10} />
@@ -213,7 +216,7 @@ export function DetailPanel({
               onChange={(e) => setTagDraft(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addTag()}
               onBlur={addTag}
-              placeholder="Add tag"
+              placeholder={t("detail.addTag")}
               className="h-[22px] w-[84px] rounded bg-transparent px-1 text-[12px] outline-none placeholder:text-faint focus:bg-hover"
             />
           </div>
@@ -224,23 +227,23 @@ export function DetailPanel({
           right={
             body && (
               <button onClick={() => setMdOpen((v) => !v)} className="text-[11px] text-muted hover:text-fg">
-                {mdOpen ? "Collapse" : "Expand"}
+                {mdOpen ? t("common.collapse") : t("common.expand")}
               </button>
             )
           }
         >
           {detail.isLoading ? (
-            <div className="text-[12px] text-faint">Loading…</div>
+            <div className="text-[12px] text-faint">{t("common.loading")}</div>
           ) : (
             <pre
               className={`font-mono text-[11.5px] leading-relaxed whitespace-pre-wrap text-muted ${mdOpen ? "" : "max-h-40 overflow-hidden mask-b-from-60%"}`}
             >
-              {body || "Empty file."}
+              {body || t("detail.emptyFile")}
             </pre>
           )}
           {detail.data && detail.data.files.length > 1 && (
             <div className="mt-3 text-[11.5px] text-faint">
-              {detail.data.files.length} files: {detail.data.files.slice(0, 6).join(", ")}
+              {t("detail.files", { n: detail.data.files.length, list: detail.data.files.slice(0, 6).join(", ") })}
               {detail.data.files.length > 6 && "…"}
             </div>
           )}
@@ -248,10 +251,9 @@ export function DetailPanel({
       </div>
 
       {pending && (
-        <Dialog title="Move to Trash?" onClose={() => setPending(null)}>
+        <Dialog title={t("remove.title")} onClose={() => setPending(null)}>
           <p className="text-[13px] text-muted">
-            These items go to the Trash and can be restored from there.
-            {skill.source && pending.paths.length === skill.installs.length && " The npx skills lock entry is removed too."}
+            {skill.source && pending.paths.length === skill.installs.length ? t("remove.bodyWithLock") : t("remove.body")}
           </p>
           <ul className="selectable mt-3 space-y-1 rounded-md bg-hover p-2.5 font-mono text-[11.5px]">
             {pending.paths.map((p) => (
@@ -261,9 +263,9 @@ export function DetailPanel({
             ))}
           </ul>
           <div className="mt-4 flex justify-end gap-2">
-            <Button onClick={() => setPending(null)}>Cancel</Button>
+            <Button onClick={() => setPending(null)}>{t("common.cancel")}</Button>
             <Button variant="primary" onClick={() => removeMut.mutate()} disabled={removeMut.isPending}>
-              {removeMut.isPending ? "Moving…" : "Move to Trash"}
+              {removeMut.isPending ? t("remove.moving") : t("remove.confirm")}
             </Button>
           </div>
         </Dialog>

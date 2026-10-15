@@ -35,8 +35,9 @@ describe("catalog", () => {
   });
 
   it("fills placeholders and keeps unknown ones visible", () => {
-    expect(translate("en", "common.never")).toBe("never");
-    expect(translate("zh", "common.never")).toBe("从未");
+    expect(translate("en", "sidebar.showMore", { n: 5 })).toBe("Show 5 more");
+    expect(translate("zh", "sidebar.showMore", { n: 5 })).toBe("展开另外 5 项");
+    expect(translate("en", "sidebar.showMore", { other: 1 })).toBe("Show {n} more");
   });
 });
 

@@ -42,15 +42,13 @@ export function buildGrid(daily: Record<string, number>, weeks: number, today = 
   return cols;
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-export function monthLabels(grid: Cell[][]): { col: number; label: string }[] {
-  const out: { col: number; label: string }[] = [];
+export function monthLabels(grid: Cell[][]): { col: number; month: number }[] {
+  const out: { col: number; month: number }[] = [];
   let prev = -1;
   grid.forEach((col, i) => {
     const month = Number(col[0].date.slice(5, 7)) - 1;
     if (month !== prev) {
-      if (prev !== -1 || col[0].date.slice(8) <= "07") out.push({ col: i, label: MONTHS[month] });
+      if (prev !== -1 || col[0].date.slice(8) <= "07") out.push({ col: i, month });
       prev = month;
     }
   });
