@@ -13,6 +13,8 @@
 
 ![SkillsHub in dark mode](docs/screenshot-dark.png)
 
+![SkillsHub in Chinese](docs/screenshot-zh.png)
+
 Skills pile up. Claude Code, Codex, Cursor, OpenCode and the shared `~/.agents` folder each keep their own copy, plugins add more, and after a few months nobody remembers which ones are used. SkillsHub scans all of those folders, merges them into one list, and reads your own session logs to show when each skill was last used.
 
 Everything runs on your machine. The app makes no network calls of its own. The only time it reaches the internet is when you press Install, and then `npx skills` does the fetching.
@@ -42,6 +44,7 @@ You can also open System Settings, go to Privacy & Security, and press Open Anyw
 - **Install.** Press Install, enter `owner/repo`, pick the agents, and SkillsHub runs `npx skills add` for you with live output.
 - **Delete.** Removes the skill folder and its lockfile entry. Files go to the Trash, so you can put them back.
 - **Light, dark and system appearance.** The theme is applied before first paint, so there is no flash.
+- **English and Chinese.** The UI follows your system language and can be switched in the sidebar footer. Skill names, descriptions and paths are your own data and are never translated.
 - **Keyboard.** Up and down arrows move through the list, `Cmd+F` focuses search, and `Esc` closes the detail panel.
 
 ## How usage is counted
@@ -87,7 +90,11 @@ Some Rust tests are ignored by default because they touch your real home folder.
 
 ## The icon
 
-`design/icon.svg` is the source. `pnpm icon` renders it to `design/icon-1024.png` and regenerates everything under `src-tauri/icons`.
+`design/icon.svg` is the source. `pnpm icon` renders it to `design/icon-1024.png` with resvg and regenerates everything under `src-tauri/icons`.
+
+## Translations
+
+Messages live in `src/lib/messages/en.ts` and `zh.ts`. `en.ts` defines the keys and `zh.ts` is typed against it, so a missing Chinese string fails `tsc`. A test also checks that both languages use the same `{placeholders}`. To add a language, add a catalog with the same shape and register it in `src/lib/i18n.tsx`.
 
 ## Stack
 
