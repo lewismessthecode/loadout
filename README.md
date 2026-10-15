@@ -21,7 +21,7 @@ Everything runs on your machine. The app makes no network calls of its own. The 
 
 ## Install
 
-1. Download `Loadout_0.2.0_universal.dmg` from the [latest release](https://github.com/lewismessthecode/loadout/releases/latest).
+1. Download `Loadout_0.2.1_universal.dmg` from the [latest release](https://github.com/lewismessthecode/loadout/releases/latest).
 2. Open the DMG and drag Loadout to Applications.
 3. Open Loadout.
 
