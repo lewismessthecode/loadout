@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from "react";
-import { Boxes, Clock, HelpCircle, Layers, Monitor, Moon, Puzzle, Sun, type LucideIcon } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Check, Clock, HelpCircle, Languages, Layers, Monitor, Moon, Puzzle, Sun, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sameFilter, type Counts, type Filter, type View } from "@/lib/filter";
 import { agentLabel } from "@/lib/format";
@@ -80,24 +80,67 @@ const LANG_OPTIONS: { pref: LangPref; label?: string }[] = [
   { pref: "zh", label: "中文" },
 ];
 
-function LangSwitch() {
+function LangMenu() {
   const { pref, setPref, t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!root.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   return (
-    <div role="radiogroup" aria-label={t("lang.label")} className="flex rounded-md bg-hover p-0.5">
-      {LANG_OPTIONS.map(({ pref: p, label }) => (
-        <button
-          key={p}
-          role="radio"
-          aria-checked={pref === p}
-          onClick={() => setPref(p)}
-          className={cn(
-            "h-6 min-w-0 flex-1 truncate rounded px-1 text-[11px] text-muted",
-            pref === p ? "bg-bg text-fg shadow-sm" : "hover:text-fg",
-          )}
+    <div ref={root} className="relative">
+      <button
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={t("lang.label")}
+        title={t("lang.label")}
+        onClick={() => setOpen((v) => !v)}
+        className="flex size-7 items-center justify-center rounded-md bg-hover text-muted hover:text-fg"
+      >
+        <Languages size={14} />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          aria-label={t("lang.label")}
+          className="absolute right-0 bottom-full z-50 mb-1.5 min-w-[140px] rounded-md border border-line bg-bg p-1 shadow-lg"
         >
-          {p === "system" ? t("lang.system") : label}
-        </button>
-      ))}
+          {LANG_OPTIONS.map(({ pref: p, label }) => (
+            <button
+              key={p}
+              role="menuitemradio"
+              aria-checked={pref === p}
+              onClick={() => {
+                setPref(p);
+                setOpen(false);
+              }}
+              className={cn(
+                "flex h-7 w-full items-center gap-2 rounded px-2 text-left text-[13px] hover:bg-hover",
+                pref === p ? "font-medium text-fg" : "text-fg/80",
+              )}
+            >
+              <span className="min-w-0 flex-1 truncate">{p === "system" ? t("lang.system") : label}</span>
+              <span className="flex w-[13px] shrink-0 justify-center">{pref === p && <Check size={13} />}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -129,12 +172,7 @@ export function Sidebar({
 
   return (
     <aside className="flex h-full w-[236px] shrink-0 flex-col border-r border-line bg-sidebar">
-      <div data-tauri-drag-region className="flex h-[52px] shrink-0 items-end pb-2 pl-[78px]">
-        <div className="pointer-events-none flex items-center gap-1.5 text-[13px] font-semibold">
-          <Boxes size={14} />
-          SkillsHub
-        </div>
-      </div>
+      <div data-tauri-drag-region className="h-[52px] shrink-0" />
       <nav className="flex-1 overflow-y-auto px-2 pb-4">
         <div>
           {VIEWS.map(({ view, label, icon: Icon }) => (
@@ -204,9 +242,11 @@ export function Sidebar({
           </Section>
         )}
       </nav>
-      <div className="shrink-0 space-y-1.5 border-t border-line p-2.5">
-        <ThemeSwitch />
-        <LangSwitch />
+      <div className="flex shrink-0 items-center gap-1.5 border-t border-line p-2.5">
+        <div className="min-w-0 flex-1">
+          <ThemeSwitch />
+        </div>
+        <LangMenu />
       </div>
     </aside>
   );
