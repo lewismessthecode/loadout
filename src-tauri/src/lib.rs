@@ -30,6 +30,7 @@ pub fn run() {
             commands::usage_heatmap,
             commands::set_tags,
             commands::reveal_in_finder,
+            commands::plan_removal,
             commands::remove_skill,
             commands::install,
         ])

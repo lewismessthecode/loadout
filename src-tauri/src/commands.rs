@@ -85,6 +85,18 @@ pub struct RemoveReport {
 }
 
 #[tauri::command]
+pub async fn plan_removal(state: State<'_, AppState>, id: String, paths: Option<Vec<String>>) -> Cmd<Vec<String>> {
+    let (home, index) = (state.home.clone(), state.index.clone());
+    blocking(move || {
+        let mut idx = index.lock().map_err(|e| e.to_string())?;
+        let skills = service::load(&home, &mut idx, false)?;
+        let skill = skills.iter().find(|s| s.id == id).ok_or("skill not found")?;
+        service::plan_removal(skill, paths.as_deref())
+    })
+    .await
+}
+
+#[tauri::command]
 pub async fn remove_skill(state: State<'_, AppState>, id: String, paths: Option<Vec<String>>) -> Cmd<RemoveReport> {
     let (home, index) = (state.home.clone(), state.index.clone());
     blocking(move || {

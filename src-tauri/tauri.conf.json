@@ -13,8 +13,13 @@
     "windows": [
       {
         "title": "SkillsHub",
-        "width": 1280,
-        "height": 800
+        "width": 1320,
+        "height": 820,
+        "minWidth": 900,
+        "minHeight": 560,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": { "x": 18, "y": 20 }
       }
     ],
     "security": {
