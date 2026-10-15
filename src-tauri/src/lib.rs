@@ -3,6 +3,7 @@ pub mod catalog;
 pub mod lockfile;
 pub mod model;
 pub mod scan;
+pub mod usage;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
