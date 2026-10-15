@@ -21,7 +21,7 @@ Everything runs on your machine. The app makes no network calls of its own. The 
 
 ## Install
 
-1. Download `SkillsHub_0.1.0_universal.dmg` from the [latest release](https://github.com/lewismessthecode/skillshub/releases/latest).
+1. Download `SkillsHub_0.2.0_universal.dmg` from the [latest release](https://github.com/lewismessthecode/skillshub/releases/latest).
 2. Open the DMG and drag SkillsHub to Applications.
 3. Open SkillsHub.
 
