@@ -1,39 +1,39 @@
 <p align="center">
-  <img src="design/icon-1024.png" width="112" alt="SkillsHub icon">
+  <img src="design/icon-1024.png" width="112" alt="Loadout icon">
 </p>
 
-<h1 align="center">SkillsHub</h1>
+<h1 align="center">Loadout</h1>
 
 <p align="center">
   A local manager for the agent skills on your Mac.<br>
   See every skill, where it came from, and how often you actually use it.
 </p>
 
-![SkillsHub in light mode](docs/screenshot-light.png)
+![Loadout in light mode](docs/screenshot-light.png)
 
-![SkillsHub in dark mode](docs/screenshot-dark.png)
+![Loadout in dark mode](docs/screenshot-dark.png)
 
-![SkillsHub in Chinese](docs/screenshot-zh.png)
+![Loadout in Chinese](docs/screenshot-zh.png)
 
-Skills pile up. Claude Code, Codex, Cursor, OpenCode and the shared `~/.agents` folder each keep their own copy, plugins add more, and after a few months nobody remembers which ones are used. SkillsHub scans all of those folders, merges them into one list, and reads your own session logs to show when each skill was last used.
+Skills pile up. Claude Code, Codex, Cursor, OpenCode and the shared `~/.agents` folder each keep their own copy, plugins add more, and after a few months nobody remembers which ones are used. Loadout scans all of those folders, merges them into one list, and reads your own session logs to show when each skill was last used.
 
 Everything runs on your machine. The app makes no network calls of its own. The only time it reaches the internet is when you press Install, and then `npx skills` does the fetching.
 
 ## Install
 
-1. Download `SkillsHub_0.2.0_universal.dmg` from the [latest release](https://github.com/lewismessthecode/skillshub/releases/latest).
-2. Open the DMG and drag SkillsHub to Applications.
-3. Open SkillsHub.
+1. Download `Loadout_0.2.0_universal.dmg` from the [latest release](https://github.com/lewismessthecode/loadout/releases/latest).
+2. Open the DMG and drag Loadout to Applications.
+3. Open Loadout.
 
 The build is universal, so it runs natively on Apple silicon and Intel. It needs macOS 12 or later.
 
 The app is signed ad hoc and is not notarized, because that needs a paid Apple Developer account. A copy downloaded through a browser carries a quarantine flag, and macOS may refuse its first launch. Clear the flag once:
 
 ```sh
-xattr -dr com.apple.quarantine /Applications/SkillsHub.app
+xattr -dr com.apple.quarantine /Applications/Loadout.app
 ```
 
-You can also open System Settings, go to Privacy & Security, and press Open Anyway after the first refusal. A copy you build yourself never gets the flag and opens straight away. SkillsHub never asks for Full Disk Access, Automation, Accessibility or Screen Recording. It only reads files under your home folder that your own user can already read.
+You can also open System Settings, go to Privacy & Security, and press Open Anyway after the first refusal. A copy you build yourself never gets the flag and opens straight away. Loadout never asks for Full Disk Access, Automation, Accessibility or Screen Recording. It only reads files under your home folder that your own user can already read.
 
 ## What it does
 
@@ -41,7 +41,7 @@ You can also open System Settings, go to Privacy & Security, and press Open Anyw
 - **Source and author.** Reads the `npx skills` lockfile at `~/.agents/.skill-lock.json` to show the repo each skill came from. Plugin skills get their source from the plugin cache path.
 - **Usage heatmap.** A GitHub-style grid per skill, plus a 12-week sparkline on every row. Sort by uses or by last used, or open the Unused 30d+ view to find skills you can drop.
 - **Tags.** Add your own tags. They are stored locally and survive rescans.
-- **Install.** Press Install, enter `owner/repo`, pick the agents, and SkillsHub runs `npx skills add` for you with live output.
+- **Install.** Press Install, enter `owner/repo`, pick the agents, and Loadout runs `npx skills add` for you with live output.
 - **Delete.** Removes the skill folder and its lockfile entry. Files go to the Trash, so you can put them back.
 - **Light, dark and system appearance.** The theme is applied before first paint, so there is no flash.
 - **English and Chinese.** The UI follows your system language and can be switched in the sidebar footer. Skill names, descriptions and paths are your own data and are never translated.
@@ -49,7 +49,7 @@ You can also open System Settings, go to Privacy & Security, and press Open Anyw
 
 ## How usage is counted
 
-SkillsHub does not instrument anything. It reads the session logs your agents already write and looks for evidence that a skill was loaded.
+Loadout does not instrument anything. It reads the session logs your agents already write and looks for evidence that a skill was loaded.
 
 | Agent | What counts as a use |
 | --- | --- |
@@ -57,9 +57,9 @@ SkillsHub does not instrument anything. It reads the session logs your agents al
 | Codex | A tool call whose input mentions a `SKILL.md`, or a `<skill>` attachment |
 | Cursor | A read of a `SKILL.md`, or a skill you attached by hand |
 
-One skill counts at most once per session file per day, so a long session that reads the same skill ten times is one use. Counts are indexed incrementally in `~/Library/Application Support/SkillsHub/skillshub.db`. Only the skill name, the agent and the day are stored. Prompts and replies are never copied. Delete the file and the next scan rebuilds it.
+One skill counts at most once per session file per day, so a long session that reads the same skill ten times is one use. Counts are indexed incrementally in `~/Library/Application Support/Loadout/loadout.db`. Only the skill name, the agent and the day are stored. Prompts and replies are never copied. Delete the file and the next scan rebuilds it.
 
-Counts are a lower bound. An agent that never reads a skill file, or logs in a format SkillsHub does not know, shows zero.
+Counts are a lower bound. An agent that never reads a skill file, or logs in a format Loadout does not know, shows zero.
 
 ## Build from source
 

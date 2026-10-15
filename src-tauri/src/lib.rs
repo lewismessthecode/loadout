@@ -16,8 +16,8 @@ pub fn run() {
     let home = dirs::home_dir().expect("no home directory");
     let db = dirs::data_dir()
         .expect("no data directory")
-        .join("SkillsHub")
-        .join("skillshub.db");
+        .join("Loadout")
+        .join("loadout.db");
     let index = Index::open(&db).expect("failed to open usage index");
 
     tauri::Builder::default()

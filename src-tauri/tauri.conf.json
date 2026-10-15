@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "SkillsHub",
+  "productName": "Loadout",
   "version": "0.2.0",
-  "identifier": "com.lewisliu.skillshub",
+  "identifier": "com.lewisliu.loadout",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "SkillsHub",
+        "title": "Loadout",
         "width": 1320,
         "height": 820,
         "minWidth": 900,
@@ -43,7 +43,7 @@
     ],
     "category": "DeveloperTool",
     "shortDescription": "Manage every agent skill on your Mac",
-    "longDescription": "SkillsHub scans the skills directories of Claude Code, Codex, Cursor and other coding agents, and shows where each skill came from and when it was last used.",
+    "longDescription": "Loadout scans the skills directories of Claude Code, Codex, Cursor and other coding agents, and shows where each skill came from and when it was last used.",
     "macOS": {
       "minimumSystemVersion": "12.0",
       "signingIdentity": "-"

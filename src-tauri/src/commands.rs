@@ -130,7 +130,7 @@ pub async fn install(app: AppHandle, repo: String, agents: Vec<String>, skill: O
     blocking(move || {
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".into());
         let mut child = Command::new(shell)
-            .args(["-l", "-i", "-c", r#"exec npx "$@""#, "skillshub"])
+            .args(["-l", "-i", "-c", r#"exec npx "$@""#, "loadout"])
             .args(&argv)
             .env("NO_COLOR", "1")
             .env("CI", "1")

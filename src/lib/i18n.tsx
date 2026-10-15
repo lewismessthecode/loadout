@@ -9,7 +9,7 @@ export type Vars = Record<string, string | number>;
 
 export const LANGS: Record<Lang, Record<MessageKey, string>> = { en, zh };
 
-const STORAGE_KEY = "skillshub.lang";
+const STORAGE_KEY = "loadout.lang";
 
 export function resolveLang(pref: LangPref, systemLangs: readonly string[]): Lang {
   if (pref !== "system") return pref;

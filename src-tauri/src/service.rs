@@ -306,12 +306,12 @@ mod dump {
     #[ignore]
     fn dump_real_home_json() {
         let home = dirs::home_dir().unwrap();
-        let db = dirs::data_dir().unwrap().join("SkillsHub/skillshub.db");
+        let db = dirs::data_dir().unwrap().join("Loadout/loadout.db");
         let mut idx = Index::open(&db).unwrap();
         let skills = load(&home, &mut idx, true).unwrap();
         let heat = heatmap(&skills, None, 365);
         let out = serde_json::json!({ "skills": skills, "agents": agents(&home), "heat": heat });
-        std::fs::write("/tmp/skillshub_dump.json", serde_json::to_string(&out).unwrap()).unwrap();
+        std::fs::write("/tmp/loadout_dump.json", serde_json::to_string(&out).unwrap()).unwrap();
     }
 }
 

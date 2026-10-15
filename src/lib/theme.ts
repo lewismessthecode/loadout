@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 export type ThemePref = "system" | "light" | "dark";
 
-const KEY = "skillshub.theme";
+const KEY = "loadout.theme";
 const query = () => window.matchMedia("(prefers-color-scheme: dark)");
 
 export function resolveTheme(pref: ThemePref, systemDark: boolean): "light" | "dark" {
