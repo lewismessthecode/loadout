@@ -104,6 +104,7 @@ function Shell() {
             title="Rescan skills and usage"
             onClick={() => {
               queryClient.invalidateQueries({ queryKey: ["skills"] });
+              queryClient.invalidateQueries({ queryKey: ["agents"] });
               queryClient.invalidateQueries({ queryKey: ["heat"] });
             }}
             className="w-7 justify-center px-0"
