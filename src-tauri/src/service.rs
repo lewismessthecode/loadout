@@ -138,6 +138,41 @@ pub fn plan_removal(skill: &Skill, selected: Option<&[String]>) -> Result<Vec<St
     Ok(paths)
 }
 
+pub fn move_to_trash(path: &str) -> Result<(), String> {
+    let mut ctx = trash::TrashContext::default();
+    #[cfg(target_os = "macos")]
+    {
+        use trash::macos::{DeleteMethod, TrashContextExtMacos};
+        ctx.set_delete_method(DeleteMethod::NsFileManager);
+    }
+    ctx.delete(path).map_err(|e| e.to_string())
+}
+
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoveReport {
+    pub removed: Vec<String>,
+    pub lock_entries_removed: usize,
+}
+
+pub fn execute_removal(
+    home: &Path,
+    skill: &Skill,
+    plan: Vec<String>,
+    trash: impl Fn(&str) -> Result<(), String>,
+) -> Result<RemoveReport, String> {
+    for p in &plan {
+        trash(p).map_err(|e| format!("{p}: {e}"))?;
+    }
+    let keys = lock_keys_to_drop(skill, skill.installs.len() - plan.len());
+    let lock_entries_removed = if keys.is_empty() {
+        0
+    } else {
+        lockfile::remove_entries(&lock_path(home), &keys).unwrap_or(0)
+    };
+    Ok(RemoveReport { removed: plan, lock_entries_removed })
+}
+
 pub fn lock_keys_to_drop(skill: &Skill, remaining_installs: usize) -> Vec<String> {
     if remaining_installs > 0 {
         return Vec::new();
@@ -195,6 +230,34 @@ mod tests {
     }
 
     #[test]
+    fn full_removal_drops_lock_entry_and_partial_keeps_it() {
+        let home = tempfile::tempdir().unwrap();
+        let lock = lock_path(home.path());
+        std::fs::create_dir_all(lock.parent().unwrap()).unwrap();
+        std::fs::write(&lock, r#"{"version":3,"skills":{"tdd":{"source":"a/b","sourceType":"github","installedAt":"2026-01-01T00:00:00Z"},"other":{"source":"a/c","sourceType":"github"}}}"#).unwrap();
+        let s = skill(vec![("/h/.agents/skills/tdd", InstallKind::Dir, false), ("/h/.cursor/skills/tdd", InstallKind::Symlink, false)]);
+        let trashed = std::cell::RefCell::new(Vec::new());
+        let t = |p: &str| { trashed.borrow_mut().push(p.to_string()); Ok(()) };
+
+        let r = execute_removal(home.path(), &s, vec!["/h/.cursor/skills/tdd".into()], &t).unwrap();
+        assert_eq!(r.lock_entries_removed, 0);
+        assert_eq!(lockfile::read(&lock).len(), 2);
+
+        let r = execute_removal(home.path(), &s, vec!["/h/.agents/skills/tdd".into(), "/h/.cursor/skills/tdd".into()], &t).unwrap();
+        assert_eq!(r.lock_entries_removed, 1);
+        assert_eq!(lockfile::read(&lock).keys().collect::<Vec<_>>(), vec!["other"]);
+        assert_eq!(trashed.borrow().len(), 3);
+    }
+
+    #[test]
+    fn trash_failure_aborts_before_touching_the_lockfile() {
+        let home = tempfile::tempdir().unwrap();
+        let s = skill(vec![("/h/a", InstallKind::Dir, false)]);
+        let e = execute_removal(home.path(), &s, vec!["/h/a".into()], |_| Err("denied".into())).unwrap_err();
+        assert!(e.contains("denied"));
+    }
+
+    #[test]
     fn lock_entries_dropped_only_when_nothing_remains() {
         let s = skill(vec![]);
         assert!(lock_keys_to_drop(&s, 1).is_empty());
@@ -232,5 +295,57 @@ mod real_home {
         if let Some(d) = skills.iter().find(|s| s.dir_name == "diagnosing-bugs") {
             eprintln!("diagnosing-bugs daily: {:?}", d.usage.daily);
         }
+    }
+}
+
+#[cfg(test)]
+mod dump {
+    use super::*;
+
+    #[test]
+    #[ignore]
+    fn dump_real_home_json() {
+        let home = dirs::home_dir().unwrap();
+        let db = dirs::data_dir().unwrap().join("SkillsHub/skillshub.db");
+        let mut idx = Index::open(&db).unwrap();
+        let skills = load(&home, &mut idx, true).unwrap();
+        let heat = heatmap(&skills, None, 365);
+        let out = serde_json::json!({ "skills": skills, "agents": agents(&home), "heat": heat });
+        std::fs::write("/tmp/skillshub_dump.json", serde_json::to_string(&out).unwrap()).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod e2e_fake_home {
+    use super::*;
+
+    #[test]
+    #[ignore]
+    fn install_then_remove_with_real_trash() {
+        let home = PathBuf::from(std::env::var("E2E_HOME").unwrap());
+        let db = tempfile::tempdir().unwrap();
+        let mut idx = Index::open(&db.path().join("t.db")).unwrap();
+        let trash = move_to_trash;
+
+        let skills = load(&home, &mut idx, false).unwrap();
+        assert_eq!(skills.len(), 1, "{skills:#?}");
+        let s = &skills[0];
+        assert_eq!(s.name, "web-design-guidelines");
+        assert_eq!(s.installs.len(), 2);
+        assert_eq!(s.source.as_ref().unwrap().repo, "vercel-labs/agent-skills");
+
+        let link = s.installs.iter().find(|i| i.kind == InstallKind::Symlink).unwrap().path.clone();
+        let plan = plan_removal(s, Some(&[link.clone()])).unwrap();
+        let r = execute_removal(&home, s, plan, trash).unwrap();
+        assert_eq!((r.removed.len(), r.lock_entries_removed), (1, 0));
+        assert!(!Path::new(&link).exists() && std::fs::symlink_metadata(&link).is_err());
+        assert!(home.join(".agents/skills/web-design-guidelines/SKILL.md").exists());
+
+        let skills = load(&home, &mut idx, false).unwrap();
+        let plan = plan_removal(&skills[0], None).unwrap();
+        let r = execute_removal(&home, &skills[0], plan, trash).unwrap();
+        assert_eq!((r.removed.len(), r.lock_entries_removed), (1, 1));
+        assert!(load(&home, &mut idx, false).unwrap().is_empty());
+        assert!(lockfile::read(&lock_path(&home)).is_empty());
     }
 }

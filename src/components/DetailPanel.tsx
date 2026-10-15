@@ -50,6 +50,7 @@ export function DetailPanel({
   const [pending, setPending] = useState<{ paths: string[]; scope?: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mdOpen, setMdOpen] = useState(false);
+  const [descOpen, setDescOpen] = useState(false);
   const [tagDraft, setTagDraft] = useState("");
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["skills"] });
@@ -97,7 +98,14 @@ export function DetailPanel({
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="px-5 pb-4">
           <h2 className="selectable text-[18px] leading-tight font-semibold">{skill.name}</h2>
-          <p className="selectable mt-1.5 text-[13px] leading-snug text-muted">{skill.description || "No description."}</p>
+          <p className={`selectable mt-1.5 text-[13px] leading-snug text-muted ${descOpen ? "" : "line-clamp-4"}`}>
+            {skill.description || "No description."}
+          </p>
+          {skill.description.length > 220 && (
+            <button onClick={() => setDescOpen((v) => !v)} className="mt-1 text-[12px] text-muted hover:text-fg">
+              {descOpen ? "Show less" : "Show more"}
+            </button>
+          )}
           <div className="mt-3 flex flex-wrap gap-1.5">
             <Button onClick={() => api.reveal(skill.canonicalDir)}>
               <FolderOpen size={13} /> Reveal

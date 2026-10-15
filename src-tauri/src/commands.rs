@@ -1,10 +1,8 @@
 use crate::agents::{self, AgentInfo};
-use crate::lockfile;
 use crate::model::Skill;
-use crate::service::{self, DayCount, SkillDetail};
+use crate::service::{self, DayCount, RemoveReport, SkillDetail};
 use crate::usage::index::Index;
 use regex::Regex;
-use serde::Serialize;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -77,13 +75,6 @@ pub fn reveal_in_finder(state: State<'_, AppState>, path: String) -> Cmd<()> {
     tauri_plugin_opener::reveal_item_in_dir(p).map_err(|e| e.to_string())
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RemoveReport {
-    pub removed: Vec<String>,
-    pub lock_entries_removed: usize,
-}
-
 #[tauri::command]
 pub async fn plan_removal(state: State<'_, AppState>, id: String, paths: Option<Vec<String>>) -> Cmd<Vec<String>> {
     let (home, index) = (state.home.clone(), state.index.clone());
@@ -104,16 +95,7 @@ pub async fn remove_skill(state: State<'_, AppState>, id: String, paths: Option<
         let skills = service::load(&home, &mut idx, false)?;
         let skill = skills.iter().find(|s| s.id == id).ok_or("skill not found")?;
         let plan = service::plan_removal(skill, paths.as_deref())?;
-        for p in &plan {
-            trash::delete(p).map_err(|e| format!("{p}: {e}"))?;
-        }
-        let keys = service::lock_keys_to_drop(skill, skill.installs.len() - plan.len());
-        let lock_entries_removed = if keys.is_empty() {
-            0
-        } else {
-            lockfile::remove_entries(&service::lock_path(&home), &keys).unwrap_or(0)
-        };
-        Ok(RemoveReport { removed: plan, lock_entries_removed })
+        service::execute_removal(&home, skill, plan, service::move_to_trash)
     })
     .await
 }
