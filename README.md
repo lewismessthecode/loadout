@@ -38,6 +38,8 @@ You can also open System Settings, go to Privacy & Security, and press Open Anyw
 ## What it does
 
 - **One list for every agent.** Scans `~/.agents/skills` and the skill folders and plugin caches of Claude Code, Codex, Cursor, Gemini, OpenCode and Windsurf. Symlinks are followed, so a skill linked into three agents shows up once with three installs. Broken links are skipped.
+- **Sidebar.** An agent row appears when that agent's skill folder exists, or when the agent still has at least one skill. Gemini stays off the sidebar when `~/.gemini/skills` is missing. OpenCode and Windsurf use the same rule.
+- **Live list.** Adding or removing a `SKILL.md` inside a watched skill folder updates the open window. Loadout waits 500 ms after the last change, then rescans the list and the sidebar. Usage counts and the heatmap update when you press refresh, or when the window gains focus. To drop an agent after you delete its skill folder, press refresh.
 - **Source and author.** Reads the `npx skills` lockfile at `~/.agents/.skill-lock.json` to show the repo each skill came from. Plugin skills get their source from the plugin cache path.
 - **Usage heatmap.** A GitHub-style grid per skill, plus a 12-week sparkline on every row. Sort by uses or by last used, or open the Unused 30d+ view to find skills you can drop.
 - **Tags.** Add your own tags. They are stored locally and survive rescans.
@@ -98,7 +100,7 @@ Messages live in `src/lib/messages/en.ts` and `zh.ts`. `en.ts` defines the keys 
 
 ## Stack
 
-Tauri 2 and Rust for the scanner, the log parsers and the SQLite index. React 19, Vite, Tailwind 4 and TanStack Query for the UI.
+Tauri 2 and Rust for the scanner, the skill-folder watch, the log parsers and the SQLite index. React 19, Vite, Tailwind 4 and TanStack Query for the UI.
 
 ## License
 
