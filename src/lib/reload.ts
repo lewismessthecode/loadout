@@ -13,4 +13,5 @@ export function invalidateCatalog(client: QueryClient): void {
   void client.invalidateQueries({ queryKey: ["skills"] });
   void client.invalidateQueries({ queryKey: ["agents"] });
   void client.invalidateQueries({ queryKey: ["skill"] });
+  void client.invalidateQueries({ queryKey: ["updates"] });
 }

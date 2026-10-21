@@ -1,7 +1,7 @@
 use crate::agents::RootKind;
 use crate::lockfile::{Lock, LockEntry};
 use crate::model::*;
-use crate::scan::{read_meta, Found};
+use crate::scan::{Found, read_meta};
 use chrono::{DateTime, Local, Utc};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, HashMap};
@@ -16,7 +16,10 @@ pub fn skill_id(canonical: &Path) -> String {
 pub fn build(found: Vec<Found>, lock: &Lock) -> Vec<Skill> {
     let mut groups: BTreeMap<String, Vec<Found>> = BTreeMap::new();
     for f in found {
-        groups.entry(f.canonical.to_string_lossy().to_string()).or_default().push(f);
+        groups
+            .entry(f.canonical.to_string_lossy().to_string())
+            .or_default()
+            .push(f);
     }
 
     let mut skills: Vec<Skill> = groups
@@ -33,10 +36,16 @@ pub fn build(found: Vec<Found>, lock: &Lock) -> Vec<Skill> {
             let dir_name = dir_names.first().cloned().unwrap_or_default();
             let name = meta.name.clone().unwrap_or_else(|| dir_name.clone());
 
-            let lock_entry = dir_names
-                .iter()
-                .chain(std::iter::once(&name))
-                .find_map(|k| lock.get(k));
+            let plugin = group.iter().any(|f| f.kind == RootKind::PluginCache)
+                || plugin_source(&canonical_path).is_some();
+            let lock_entry = (!plugin)
+                .then(|| {
+                    dir_names
+                        .iter()
+                        .chain(std::iter::once(&name))
+                        .find_map(|k| lock.get(k))
+                })
+                .flatten();
             let source = lock_entry
                 .map(source_from_lock)
                 .or_else(|| plugin_source(&canonical_path));
@@ -50,8 +59,12 @@ pub fn build(found: Vec<Found>, lock: &Lock) -> Vec<Skill> {
                 .map(|f| Install {
                     agent: f.agent.to_string(),
                     path: f.path.to_string_lossy().to_string(),
-                    kind: if f.is_symlink { InstallKind::Symlink } else { InstallKind::Dir },
-                    plugin: f.kind == RootKind::PluginCache,
+                    kind: if f.is_symlink {
+                        InstallKind::Symlink
+                    } else {
+                        InstallKind::Dir
+                    },
+                    plugin: plugin,
                 })
                 .collect();
 
@@ -72,19 +85,33 @@ pub fn build(found: Vec<Found>, lock: &Lock) -> Vec<Skill> {
         })
         .collect();
 
-    skills.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()).then(a.id.cmp(&b.id)));
+    skills.sort_by(|a, b| {
+        a.name
+            .to_lowercase()
+            .cmp(&b.name.to_lowercase())
+            .then(a.id.cmp(&b.id))
+    });
     skills
 }
 
 fn source_from_lock(e: &LockEntry) -> Source {
-    let kind = if e.source_type == "github" { SourceKind::Github } else { SourceKind::WellKnown };
+    let kind = if e.source_type == "github" {
+        SourceKind::Github
+    } else {
+        SourceKind::WellKnown
+    };
     let author = e.source.split('/').next().unwrap_or(&e.source).to_string();
     let url = if e.source_url.is_empty() {
         format!("https://github.com/{}", e.source)
     } else {
         e.source_url.trim_end_matches(".git").to_string()
     };
-    Source { repo: e.source.clone(), author, url, kind }
+    Source {
+        repo: e.source.clone(),
+        author,
+        url,
+        kind,
+    }
 }
 
 fn plugin_source(canonical: &Path) -> Option<Source> {
@@ -92,7 +119,9 @@ fn plugin_source(canonical: &Path) -> Option<Source> {
         .components()
         .map(|c| c.as_os_str().to_string_lossy().to_string())
         .collect();
-    let i = comps.windows(2).position(|w| w[0] == "plugins" && w[1] == "cache")?;
+    let i = comps
+        .windows(2)
+        .position(|w| w[0] == "plugins" && w[1] == "cache")?;
     let org = comps.get(i + 2)?;
     let plugin = comps.get(i + 3)?;
     Some(Source {
@@ -105,11 +134,18 @@ fn plugin_source(canonical: &Path) -> Option<Source> {
 
 fn fs_created(p: &Path) -> Option<DateTime<Utc>> {
     let m = fs::metadata(p).ok()?;
-    m.created().or_else(|_| m.modified()).ok().map(DateTime::<Utc>::from)
+    m.created()
+        .or_else(|_| m.modified())
+        .ok()
+        .map(DateTime::<Utc>::from)
 }
 
 fn fs_modified(p: &Path) -> Option<DateTime<Utc>> {
-    fs::metadata(p).ok()?.modified().ok().map(DateTime::<Utc>::from)
+    fs::metadata(p)
+        .ok()?
+        .modified()
+        .ok()
+        .map(DateTime::<Utc>::from)
 }
 
 pub fn local_day(at: DateTime<Utc>) -> String {
@@ -141,7 +177,11 @@ impl Resolver {
                 by_name.entry(n).or_default().push(i);
             }
         }
-        Resolver { by_path, by_name, home: home.to_string_lossy().to_string() }
+        Resolver {
+            by_path,
+            by_name,
+            home: home.to_string_lossy().to_string(),
+        }
     }
 
     fn resolve(&self, skills: &[Skill], ev: &StoredEvent) -> Option<usize> {
@@ -155,11 +195,20 @@ impl Resolver {
             .map(|n| n.to_string_lossy().to_string())
             .filter(|n| !dir.is_empty() && !n.is_empty())
             .unwrap_or_else(|| ev.skill_name.clone());
-        let candidates = self.by_name.get(&base).or_else(|| self.by_name.get(&ev.skill_name))?;
+        let candidates = self
+            .by_name
+            .get(&base)
+            .or_else(|| self.by_name.get(&ev.skill_name))?;
         candidates
             .iter()
             .copied()
-            .find(|&i| skills[i].source.as_ref().map(|s| s.kind != SourceKind::Plugin).unwrap_or(true))
+            .find(|&i| {
+                skills[i]
+                    .source
+                    .as_ref()
+                    .map(|s| s.kind != SourceKind::Plugin)
+                    .unwrap_or(true)
+            })
             .or_else(|| candidates.first().copied())
     }
 }
@@ -167,7 +216,9 @@ impl Resolver {
 pub fn attach_usage(skills: &mut [Skill], events: &[StoredEvent], home: &Path) {
     let resolver = Resolver::new(skills, home);
     for ev in events {
-        let Some(i) = resolver.resolve(skills, ev) else { continue };
+        let Some(i) = resolver.resolve(skills, ev) else {
+            continue;
+        };
         let u = &mut skills[i].usage;
         u.total += 1;
         *u.by_agent.entry(ev.agent.clone()).or_default() += 1;
@@ -185,21 +236,55 @@ mod tests {
     use crate::scan::scan;
     use chrono::TimeZone;
 
-    static SHARED: [Root; 1] = [Root { rel: ".agents/skills", kind: RootKind::Skills }];
-    static CURSOR: [Root; 1] = [Root { rel: ".cursor/skills", kind: RootKind::Skills }];
-    static CURSOR_PLUGINS: [Root; 1] = [Root { rel: ".cursor/plugins/cache", kind: RootKind::PluginCache }];
+    static SHARED: [Root; 1] = [Root {
+        rel: ".agents/skills",
+        kind: RootKind::Skills,
+    }];
+    static CURSOR: [Root; 1] = [Root {
+        rel: ".cursor/skills",
+        kind: RootKind::Skills,
+    }];
+    static CURSOR_PLUGINS: [Root; 1] = [Root {
+        rel: ".cursor/plugins/cache",
+        kind: RootKind::PluginCache,
+    }];
 
     fn agents() -> [AgentDef; 3] {
         [
-            AgentDef { id: "shared", label: "s", cli_name: None, roots: &SHARED, usage: UsageSource::None },
-            AgentDef { id: "cursor", label: "c", cli_name: Some("cursor"), roots: &CURSOR, usage: UsageSource::Cursor },
-            AgentDef { id: "cursor-plugins", label: "p", cli_name: None, roots: &CURSOR_PLUGINS, usage: UsageSource::Cursor },
+            AgentDef {
+                detection_root: ".agents",
+                id: "shared",
+                label: "s",
+                cli_name: None,
+                roots: &SHARED,
+                usage: UsageSource::None,
+            },
+            AgentDef {
+                detection_root: ".agents",
+                id: "cursor",
+                label: "c",
+                cli_name: Some("cursor"),
+                roots: &CURSOR,
+                usage: UsageSource::Cursor,
+            },
+            AgentDef {
+                detection_root: ".agents",
+                id: "cursor-plugins",
+                label: "p",
+                cli_name: None,
+                roots: &CURSOR_PLUGINS,
+                usage: UsageSource::Cursor,
+            },
         ]
     }
 
     fn write_skill(dir: &Path, name: &str) {
         fs::create_dir_all(dir).unwrap();
-        fs::write(dir.join("SKILL.md"), format!("---\nname: {name}\ndescription: {name} desc\n---\n")).unwrap();
+        fs::write(
+            dir.join("SKILL.md"),
+            format!("---\nname: {name}\ndescription: {name} desc\n---\n"),
+        )
+        .unwrap();
     }
 
     fn fixture() -> (tempfile::TempDir, Vec<Skill>) {
@@ -208,8 +293,12 @@ mod tests {
         write_skill(&h.join(".agents/skills/tdd"), "tdd");
         write_skill(&h.join(".agents/skills/shadcn"), "shadcn");
         fs::create_dir_all(h.join(".cursor/skills")).unwrap();
-        std::os::unix::fs::symlink(h.join(".agents/skills/tdd"), h.join(".cursor/skills/tdd")).unwrap();
-        write_skill(&h.join(".cursor/plugins/cache/cursor-public/pstack/abc123/skills/poteto-mode"), "poteto-mode");
+        std::os::unix::fs::symlink(h.join(".agents/skills/tdd"), h.join(".cursor/skills/tdd"))
+            .unwrap();
+        write_skill(
+            &h.join(".cursor/plugins/cache/cursor-public/pstack/abc123/skills/poteto-mode"),
+            "poteto-mode",
+        );
 
         let lock = crate::lockfile::parse(
             r#"{"version":3,"skills":{"tdd":{"source":"mattpocock/skills","sourceType":"github","sourceUrl":"https://github.com/mattpocock/skills.git","installedAt":"2026-08-16T03:27:34.945Z","updatedAt":"2026-08-17T03:27:34.945Z"}}}"#,
@@ -227,14 +316,23 @@ mod tests {
         assert_eq!(tdd.installs[0].kind, InstallKind::Dir);
         assert_eq!(tdd.installs[1].kind, InstallKind::Symlink);
         let src = tdd.source.as_ref().unwrap();
-        assert_eq!((src.repo.as_str(), src.author.as_str()), ("mattpocock/skills", "mattpocock"));
+        assert_eq!(
+            (src.repo.as_str(), src.author.as_str()),
+            ("mattpocock/skills", "mattpocock")
+        );
         assert_eq!(src.url, "https://github.com/mattpocock/skills");
-        assert_eq!(tdd.installed_at.unwrap().to_rfc3339(), "2026-08-16T03:27:34.945+00:00");
+        assert_eq!(
+            tdd.installed_at.unwrap().to_rfc3339(),
+            "2026-08-16T03:27:34.945+00:00"
+        );
         let shadcn = skills.iter().find(|s| s.name == "shadcn").unwrap();
         assert!(shadcn.source.is_none());
         let plug = skills.iter().find(|s| s.name == "poteto-mode").unwrap();
         let ps = plug.source.as_ref().unwrap();
-        assert_eq!((ps.kind, ps.repo.as_str()), (SourceKind::Plugin, "cursor-public/pstack"));
+        assert_eq!(
+            (ps.kind, ps.repo.as_str()),
+            (SourceKind::Plugin, "cursor-public/pstack")
+        );
         assert!(plug.installs[0].plugin);
     }
 

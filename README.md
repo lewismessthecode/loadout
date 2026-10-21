@@ -13,7 +13,7 @@ https://github.com/user-attachments/assets/d26bf419-6909-4e2b-a12b-e4c5bcb73985
 
 Skills pile up. Claude Code, Codex, Cursor, OpenCode and the shared `~/.agents` folder each keep their own copy, plugins add more, and after a few months nobody remembers which ones are used. Loadout scans all of those folders, merges them into one list, and reads your own session logs to show when each skill was last used.
 
-Everything runs on your machine. The app makes no network calls of its own. The only time it reaches the internet is when you press Install, and then `npx skills` does the fetching.
+Your skill list, tags, and usage history stay on your machine. Network requests start only when you install skills, check for updates, or apply an update. Update checks read GitHub metadata. Installation and update preparation use the skills CLI.
 
 ## Install
 
@@ -33,13 +33,14 @@ You can also open System Settings, go to Privacy & Security, and press Open Anyw
 
 ## What it does
 
-- **One list for every agent.** Scans `~/.agents/skills` and the skill folders and plugin caches of Claude Code, Codex, Cursor, Gemini, OpenCode and Windsurf. Symlinks are followed, so a skill linked into three agents shows up once with three installs. Broken links are skipped.
-- **Sidebar.** An agent row appears when that agent's skill folder exists, or when the agent still has at least one skill. Gemini stays off the sidebar when `~/.gemini/skills` is missing. OpenCode and Windsurf use the same rule.
-- **Live list.** Adding or removing a `SKILL.md` inside a watched skill folder updates the open window. Loadout waits 500 ms after the last change, then rescans the list and the sidebar. Usage counts and the heatmap update when you press refresh, or when the window gains focus. To drop an agent after you delete its skill folder, press refresh.
+- **One list for your agents.** Scans `~/.agents/skills`, the skill folders of Claude Code, Codex, Cursor, Gemini and OpenCode, and supported plugin caches. Symlinks are followed, so a skill linked into three agents shows up once with three installs. Broken links are skipped.
+- **Detected agents.** Agent configuration directories determine which agents appear first in the sidebar and installation chooser. Other supported installation targets can be expanded when needed. Select at least one destination before installing. Existing Windsurf folders remain readable, but Windsurf is no longer an installation target.
+- **Live list.** Adding or removing a `SKILL.md` inside a watched skill folder updates the open window. Loadout waits 500 ms after the last change, then rescans the list and the sidebar. Usage counts and the heatmap update when you press refresh, or when the window gains focus. Refresh also rereads agent detection and configured scan roots.
 - **Source and author.** Reads the `npx skills` lockfile at `~/.agents/.skill-lock.json` to show the repo each skill came from. Plugin skills get their source from the plugin cache path.
-- **Usage heatmap.** A GitHub-style grid per skill, plus a 12-week sparkline on every row. Sort by uses or by last used, or open the Unused 30d+ view to find skills you can drop.
+- **Usage evidence.** Sort by recorded uses or last observed use. No recent record means Loadout has not observed a use in the available logs. It does not establish that a skill is unused. Usage parsing currently covers Claude Code, Codex and Cursor.
 - **Tags.** Add your own tags. They are stored locally and survive rescans.
 - **Install.** Press Install, enter `owner/repo`, pick the agents, and Loadout runs `npx skills add` for you with live output.
+- **Skill updates.** Check for updates explicitly, review the results, and apply selected updates. Loadout preserves the existing shared installation and its links, keeps the previous files in a backup, and reports the result for each skill.
 - **Delete.** Removes the skill folder and its lockfile entry. Files go to the Trash, so you can put them back.
 - **Light, dark and system appearance.** The theme is applied before first paint, so there is no flash.
 - **English and Chinese.** The UI follows your system language and can be switched in the sidebar footer. Skill names, descriptions and paths are your own data and are never translated.
@@ -59,9 +60,17 @@ One skill counts at most once per session file per day, so a long session that r
 
 Counts are a lower bound. An agent that never reads a skill file, or logs in a format Loadout does not know, shows zero.
 
+## Skill updates
+
+Automatic checks support GitHub skills with a recorded folder hash and skill path in a version 3 skills lockfile. The skill must be an unambiguous shared installation under `~/.agents/skills`. Plugin caches, external checkouts, independent copies, unsupported sources and incomplete installation records show an explanation instead of an update action. Plugin skills remain managed by their coding agent's plugin system.
+
+A check compares the recorded upstream revision with GitHub. A current result describes that recorded revision. It does not prove that local files are unmodified. Before applying an update, Loadout preserves the previous directory, including local additions, and shows the backup location in the result. Existing agent links keep their destinations.
+
+Loadout prepares update files with a pinned skills CLI in a temporary home. It applies the reviewed revision to the existing installation and updates its lock entry. It does not run the upstream `skills check` or `skills update` command against your home directory. Checks never remove skills that disappeared upstream.
+
 ## Build from source
 
-You need Node 20 or later, pnpm, and a Rust toolchain.
+You need Node 22.20 or later, pnpm, and a Rust toolchain. Installing and preparing skill updates also requires Node and Git.
 
 ```sh
 pnpm install

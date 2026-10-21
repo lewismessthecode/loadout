@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { ArrowUpRight, Download, FolderOpen, Link2, Trash2, X } from "lucide-react";
+import { useMaintenance } from "@/lib/maintenance";
 import { api } from "@/lib/api";
 import { invalidateCatalog } from "@/lib/reload";
 import { agentLabel, homeRelative } from "@/lib/format";
@@ -9,6 +10,7 @@ import { useI18n } from "@/lib/i18n";
 import type { AgentInfo, Skill } from "@/lib/types";
 import { Button, Chip, Dialog } from "./ui";
 import { FullHeat } from "./Heatmap";
+import { UpdatePanel } from "./UpdatePanel";
 
 function Section({ title, right, children }: { title: string; right?: ReactNode; children: ReactNode }) {
   return (
@@ -48,6 +50,7 @@ export function DetailPanel({
 }) {
   const { t, rel, date } = useI18n();
   const qc = useQueryClient();
+  const maintenance = useMaintenance();
   const label = (id: string) => agentLabel(id, agents, t);
   const uses = (n: number) => t(n === 1 ? "common.uses.one" : "common.uses.other", { n });
   const detail = useQuery({ queryKey: ["skill", skill.id], queryFn: () => api.detail(skill.id) });
@@ -74,7 +77,7 @@ export function DetailPanel({
   };
 
   const removeMut = useMutation({
-    mutationFn: () => api.remove(skill.id, pending?.scope),
+    mutationFn: () => maintenance.run("remove", () => api.remove(skill.id, pending?.scope)),
     onSuccess: async () => {
       setPending(null);
       await refresh();
@@ -82,7 +85,8 @@ export function DetailPanel({
     onError: (e) => setError(String(e)),
   });
 
-  const pluginOnly = skill.installs.every((i) => i.plugin);
+  const pluginOnly = skill.installs.some((i) => i.plugin);
+  const supportedAgents = agents.filter((agent) => agent.usageSupported).map((agent) => label(agent.id));
   const body = detail.data ? stripFrontmatter(detail.data.skillMd) : "";
   const usedBy = Object.entries(skill.usage.byAgent).sort((a, b) => b[1] - a[1]);
   const addTag = () => {
@@ -114,35 +118,20 @@ export function DetailPanel({
             <Button onClick={() => api.reveal(skill.canonicalDir)}>
               <FolderOpen size={13} /> {t("detail.reveal")}
             </Button>
-            <Button onClick={() => onInstallElsewhere(skill)} disabled={!skill.source || skill.source.kind === "plugin"}>
+            <Button onClick={() => onInstallElsewhere(skill)} disabled={maintenance.busy !== null || !skill.source || skill.source.kind === "plugin"}>
               <Download size={13} /> {t("detail.installTo")}
             </Button>
             <Button
               variant="danger"
-              disabled={pluginOnly}
+              disabled={pluginOnly || maintenance.busy !== null}
               title={pluginOnly ? t("detail.deleteManaged") : t("remove.confirm")}
               onClick={() => askRemove()}
             >
-              <Trash2 size={13} /> {t("common.delete")}
+              <Trash2 size={13} /> {t("detail.removeAll")}
             </Button>
           </div>
           {error && <div className="selectable mt-2 text-[12px] text-danger">{error}</div>}
         </div>
-
-        <Section
-          title={t("detail.activity")}
-          right={<span className="text-[11px] text-muted">{uses(skill.usage.total)}</span>}
-        >
-          <FullHeat daily={skill.usage.daily} />
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-muted">
-            <span>{t("detail.lastUsed", { when: rel(skill.usage.lastUsed) })}</span>
-            {usedBy.map(([a, n]) => (
-              <span key={a}>
-                {label(a)} <span className="text-fg tabular-nums">{n}</span>
-              </span>
-            ))}
-          </div>
-        </Section>
 
         <Section title={t("detail.details")}>
           <Row k={t("common.source")}>
@@ -179,11 +168,12 @@ export function DetailPanel({
                 >
                   {homeRelative(i.path)}
                 </button>
-                {!i.plugin && skill.installs.length > 1 && (
+                {!pluginOnly && skill.installs.length > 1 && (
                   <button
+                    disabled={maintenance.busy !== null}
                     onClick={() => askRemove([i.path])}
                     aria-label={t("detail.removeFrom", { agent: label(i.agent) })}
-                    className="shrink-0 rounded p-1 text-faint opacity-0 group-hover:opacity-100 hover:bg-hover hover:text-danger"
+                    className="shrink-0 rounded p-1 text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-hover hover:text-danger"
                   >
                     <Trash2 size={12} />
                   </button>
@@ -191,6 +181,25 @@ export function DetailPanel({
               </li>
             ))}
           </ul>
+        </Section>
+
+        <UpdatePanel skill={skill} agents={agents} />
+
+        <Section
+          title={t("detail.activity")}
+          right={<span className="text-[11px] text-muted">{uses(skill.usage.total)}</span>}
+        >
+          <p className="mb-3 text-[11.5px] leading-relaxed text-muted">{supportedAgents.length ? t("detail.activityCoverage", { agents: supportedAgents.join(", ") }) : t("detail.noActivitySupport")}</p>
+          {skill.usage.total === 0 && supportedAgents.length > 0 && <p className="mb-3 text-[12px] text-muted">{t("detail.noRecord")}</p>}
+          {supportedAgents.length > 0 && <FullHeat daily={skill.usage.daily} />}
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-muted">
+            <span>{skill.usage.lastUsed ? t("detail.lastUsed", { when: rel(skill.usage.lastUsed) }) : t("list.noRecord")}</span>
+            {usedBy.map(([a, n]) => (
+              <span key={a}>
+                {label(a)} <span className="text-fg tabular-nums">{n}</span>
+              </span>
+            ))}
+          </div>
         </Section>
 
         <Section title={t("common.tags")}>
@@ -252,10 +261,10 @@ export function DetailPanel({
       </div>
 
       {pending && (
-        <Dialog title={t("remove.title")} onClose={() => setPending(null)}>
-          <p className="text-[13px] text-muted">
-            {skill.source && pending.paths.length === skill.installs.length ? t("remove.bodyWithLock") : t("remove.body")}
-          </p>
+        <Dialog title={t("remove.title")} onClose={removeMut.isPending ? () => {} : () => setPending(null)}>
+          <p className="text-[13px] text-muted">{t(pending.scope ? "remove.scopeOne" : "remove.scopeAll")}</p>
+          <p className="mt-2 text-[12px] text-muted">{t("remove.body")}</p>
+          <h3 className="mt-3 text-[12px] font-medium">{t("remove.plan")}</h3>
           <ul className="selectable mt-3 space-y-1 rounded-md bg-hover p-2.5 font-mono text-[11.5px]">
             {pending.paths.map((p) => (
               <li key={p} className="break-all">
@@ -264,7 +273,7 @@ export function DetailPanel({
             ))}
           </ul>
           <div className="mt-4 flex justify-end gap-2">
-            <Button onClick={() => setPending(null)}>{t("common.cancel")}</Button>
+            <Button disabled={removeMut.isPending} onClick={() => setPending(null)}>{t("common.cancel")}</Button>
             <Button variant="primary" onClick={() => removeMut.mutate()} disabled={removeMut.isPending}>
               {removeMut.isPending ? t("remove.moving") : t("remove.confirm")}
             </Button>
