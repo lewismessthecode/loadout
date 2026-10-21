@@ -8,6 +8,7 @@ import type { Sort, SortKey } from "@/lib/filter";
 import type { AgentInfo, Skill } from "@/lib/types";
 import { Chip } from "./ui";
 import { MiniHeat } from "./Heatmap";
+import { metricCellClass, sortHeadClass, type SortCol } from "./sortColumns";
 
 const ROW_H = 58;
 
@@ -16,22 +17,21 @@ function SortHead({
   k,
   sort,
   onSort,
-  className,
+  col,
 }: {
   label: string;
   k: SortKey;
   sort: Sort;
   onSort: (k: SortKey) => void;
-  className?: string;
+  col: SortCol;
 }) {
   const active = sort.key === k;
   return (
-    <button
-      onClick={() => onSort(k)}
-      className={cn("flex items-center gap-1 text-left hover:text-fg", active && "text-fg", className)}
-    >
-      {label}
-      {active && (sort.dir === "asc" ? <ArrowUp size={11} /> : <ArrowDown size={11} />)}
+    <button onClick={() => onSort(k)} className={cn(sortHeadClass(col), "hover:text-fg", active && "text-fg")}>
+      <span className="min-w-0 truncate">{label}</span>
+      <span className="inline-flex size-[11px] shrink-0 items-center justify-center" aria-hidden="true">
+        {active ? sort.dir === "asc" ? <ArrowUp size={11} /> : <ArrowDown size={11} /> : null}
+      </span>
     </button>
   );
 }
@@ -39,9 +39,6 @@ function SortHead({
 const COLS = {
   agents: "hidden w-[112px] shrink-0 @xl:flex",
   source: "hidden w-[150px] shrink-0 @3xl:block",
-  installed: "hidden w-[84px] shrink-0 @4xl:block",
-  last: "w-[84px] shrink-0",
-  uses: "hidden w-[64px] shrink-0 text-right @xl:block",
   heat: "hidden w-[76px] shrink-0 @2xl:block",
 };
 
@@ -73,12 +70,20 @@ export function SkillList({
   return (
     <div className="@container flex min-h-0 flex-1 flex-col">
       <div className="flex h-8 shrink-0 items-center gap-4 border-b border-line px-5 text-[11px] font-medium text-faint">
-        <SortHead label={t("list.col.skill")} k="name" sort={sort} onSort={onSort} className="min-w-0 flex-1" />
+        <button
+          onClick={() => onSort("name")}
+          className={cn("flex min-w-0 flex-1 items-center gap-1 p-0 text-left hover:text-fg", sort.key === "name" && "text-fg")}
+        >
+          <span className="min-w-0 truncate">{t("list.col.skill")}</span>
+          <span className="inline-flex size-[11px] shrink-0 items-center justify-center" aria-hidden="true">
+            {sort.key === "name" ? sort.dir === "asc" ? <ArrowUp size={11} /> : <ArrowDown size={11} /> : null}
+          </span>
+        </button>
         <div className={COLS.agents}>{t("common.agents")}</div>
         <div className={COLS.source}>{t("common.source")}</div>
-        <SortHead label={t("common.installed")} k="installed" sort={sort} onSort={onSort} className={cn(COLS.installed)} />
-        <SortHead label={t("list.col.lastUsed")} k="lastUsed" sort={sort} onSort={onSort} className={COLS.last} />
-        <SortHead label={t("list.col.uses")} k="total" sort={sort} onSort={onSort} className={cn(COLS.uses, "justify-end")} />
+        <SortHead label={t("common.installed")} k="installed" sort={sort} onSort={onSort} col="installed" />
+        <SortHead label={t("list.col.lastUsed")} k="lastUsed" sort={sort} onSort={onSort} col="last" />
+        <SortHead label={t("list.col.uses")} k="total" sort={sort} onSort={onSort} col="uses" />
         <div className={COLS.heat}>{t("list.col.heat")}</div>
       </div>
 
@@ -113,11 +118,11 @@ export function SkillList({
                   <div className={cn(COLS.source, "truncate text-[12px] text-muted")} title={s.source?.repo}>
                     {s.source?.repo ?? <span className="text-faint">{t("list.local")}</span>}
                   </div>
-                  <div className={cn(COLS.installed, "text-[12px] text-muted tabular-nums")}>{date(s.installedAt)}</div>
-                  <div className={cn(COLS.last, "text-[12px] tabular-nums", s.usage.lastUsed ? "text-fg/80" : "text-faint")}>
+                  <div className={cn(metricCellClass("installed"), "text-[12px] text-muted tabular-nums")}>{date(s.installedAt)}</div>
+                  <div className={cn(metricCellClass("last"), "text-[12px] tabular-nums", s.usage.lastUsed ? "text-fg/80" : "text-faint")}>
                     {rel(s.usage.lastUsed, now)}
                   </div>
-                  <div className={cn(COLS.uses, "text-[12px] text-muted tabular-nums")}>{s.usage.total || ""}</div>
+                  <div className={cn(metricCellClass("uses"), "text-[12px] text-muted tabular-nums")}>{s.usage.total || ""}</div>
                   <div className={COLS.heat}>
                     <MiniHeat daily={s.usage.daily} />
                   </div>
