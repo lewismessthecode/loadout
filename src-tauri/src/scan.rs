@@ -21,7 +21,7 @@ pub struct Meta {
 const SKIP_DIRS: &[&str] = &["node_modules", ".git", "target", "dist", "__pycache__"];
 
 pub(crate) fn skipped_dir_name(name: &str) -> bool {
-    SKIP_DIRS.contains(&name)
+    name.starts_with(".loadout-") || SKIP_DIRS.contains(&name)
 }
 
 pub fn scan(home: &Path, agents: &[AgentDef]) -> Vec<Found> {
@@ -255,6 +255,7 @@ mod tests {
 
         let agents = [
             AgentDef {
+                detection_root: ".agents",
                 id: "shared",
                 label: "s",
                 cli_name: None,
@@ -262,6 +263,7 @@ mod tests {
                 usage: UsageSource::None,
             },
             AgentDef {
+                detection_root: ".cursor",
                 id: "cursor",
                 label: "c",
                 cli_name: Some("cursor"),

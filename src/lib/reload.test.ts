@@ -14,6 +14,6 @@ describe("invalidateCatalog", () => {
 
     invalidateCatalog(client);
 
-    expect(keys).toEqual([["skills"], ["agents"], ["skill"]]);
+    expect(keys).toEqual([["skills"], ["agents"], ["skill"], ["updates"]]);
   });
 });

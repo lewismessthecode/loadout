@@ -34,7 +34,9 @@ pub fn parse(text: &str) -> Lock {
 }
 
 pub fn read(path: &Path) -> Lock {
-    std::fs::read_to_string(path).map(|t| parse(&t)).unwrap_or_default()
+    std::fs::read_to_string(path)
+        .map(|t| parse(&t))
+        .unwrap_or_default()
 }
 
 pub fn remove_entries(path: &Path, names: &[String]) -> std::io::Result<usize> {
@@ -86,7 +88,10 @@ mod tests {
         let e = &lock["frontend-design"];
         assert_eq!(e.source, "anthropics/skills");
         assert_eq!(e.plugin_name.as_deref(), Some("example-skills"));
-        assert_eq!(e.installed_at.unwrap().to_rfc3339(), "2026-01-23T07:41:56.785+00:00");
+        assert_eq!(
+            e.installed_at.unwrap().to_rfc3339(),
+            "2026-01-23T07:41:56.785+00:00"
+        );
         assert_eq!(lock["lark-base"].source_type, "well-known");
     }
 
@@ -104,8 +109,18 @@ mod tests {
         assert_eq!(n, 1);
         let lock = read(&p);
         assert_eq!(lock.len(), 1);
-        let raw: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&p).unwrap()).unwrap();
+        let raw: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&p).unwrap()).unwrap();
         assert_eq!(raw["version"], 3);
         assert!(raw["dismissed"].is_object());
     }
+}
+
+pub fn global_path(home: &Path) -> std::path::PathBuf {
+    if dirs::home_dir().as_deref() == Some(home) {
+        if let Some(p) = std::env::var_os("XDG_STATE_HOME").filter(|v| !v.is_empty()) {
+            return std::path::PathBuf::from(p).join("skills/.skill-lock.json");
+        }
+    }
+    home.join(".agents/.skill-lock.json")
 }

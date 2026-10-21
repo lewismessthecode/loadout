@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import type { AgentInfo, RemoveReport, Skill, SkillDetail } from "./types";
+import type { AgentInfo, InstallLog, RemoveReport, Skill, SkillDetail, UpdateInspection, UpdateOutcome } from "./types";
 
 export const api = {
   agents: () => invoke<AgentInfo[]>("list_agents"),
@@ -12,7 +12,10 @@ export const api = {
   reveal: (path: string) => invoke<void>("reveal_in_finder", { path }),
   planRemoval: (id: string, paths?: string[]) => invoke<string[]>("plan_removal", { id, paths }),
   remove: (id: string, paths?: string[]) => invoke<RemoveReport>("remove_skill", { id, paths }),
-  install: (repo: string, agents: string[], skill?: string) =>
-    invoke<number>("install", { repo, agents, skill }),
-  onInstallLog: (cb: (line: string) => void) => listen<string>("install-log", (e) => cb(e.payload)),
+  inspectUpdates: () => invoke<UpdateInspection[]>("inspect_updates"),
+  checkUpdates: (ids: string[]) => invoke<UpdateInspection[]>("check_updates", { ids }),
+  applyUpdate: (planId: string) => invoke<UpdateOutcome>("apply_update", { planId }),
+  install: (repo: string, agents: string[], operationId: string, skill?: string) =>
+    invoke<number>("install", { repo, agents, skill, operationId }),
+  onInstallLog: (cb: (event: InstallLog) => void) => listen<InstallLog>("install-log", (e) => cb(e.payload)),
 };

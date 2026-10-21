@@ -39,6 +39,8 @@ export interface AgentInfo {
   label: string;
   detected: boolean;
   installable: boolean;
+  usageSupported: boolean;
+  roots: ScanRoot[];
 }
 
 export interface SkillDetail {
@@ -50,4 +52,32 @@ export interface SkillDetail {
 export interface RemoveReport {
   removed: string[];
   lockEntriesRemoved: number;
+}
+
+export interface ScanRoot {
+  path: string;
+  available: boolean;
+  kind: "skills" | "pluginCache";
+}
+
+export type UpdateState =
+  | { status: "unchecked" }
+  | { status: "unsupported"; reason: string }
+  | { status: "current"; checkedAt: string; revision: string }
+  | { status: "available"; planId: string; checkedAt: string; oldRevision: string; newRevision: string; affectedAgents: string[] }
+  | { status: "failed"; message: string };
+
+export interface UpdateInspection {
+  skillId: string;
+  state: UpdateState;
+}
+
+export interface UpdateOutcome {
+  backupPath: string;
+  updatedAt: string;
+}
+
+export interface InstallLog {
+  operationId: string;
+  line: string;
 }

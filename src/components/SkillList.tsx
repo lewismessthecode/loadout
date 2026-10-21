@@ -1,6 +1,7 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowDown, ArrowUp } from "lucide-react";
+import { useMaintenance } from "@/lib/maintenance";
 import { cn } from "@/lib/utils";
 import { agentLabel } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
@@ -66,6 +67,11 @@ export function SkillList({
   });
   const { t, rel, date } = useI18n();
   const now = Date.now();
+  const maintenance = useMaintenance();
+  const selectedIndex = skills.findIndex((skill) => skill.id === selectedId);
+  useEffect(() => {
+    if (selectedIndex >= 0) virt.scrollToIndex(selectedIndex, { align: "auto" });
+  }, [selectedIndex, virt]);
 
   return (
     <div className="@container flex min-h-0 flex-1 flex-col">
@@ -87,7 +93,7 @@ export function SkillList({
         <div className={COLS.heat}>{t("list.col.heat")}</div>
       </div>
 
-      <div ref={parent} className="min-h-0 flex-1 overflow-y-auto">
+      <div ref={parent} role="listbox" aria-label={t("list.label")} aria-activedescendant={selectedId ? `skill-${selectedId}` : undefined} tabIndex={0} className="min-h-0 flex-1 overflow-y-auto outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-faint">
         {skills.length === 0 ? (
           <div className="grid h-40 place-items-center text-muted">{t("list.empty")}</div>
         ) : (
@@ -98,7 +104,12 @@ export function SkillList({
               return (
                 <div
                   key={s.id}
-                  onClick={() => onSelect(s.id)}
+                  id={`skill-${s.id}`}
+                  role="option"
+                  aria-selected={s.id === selectedId}
+                  aria-posinset={v.index + 1}
+                  aria-setsize={skills.length}
+                  onClick={() => { parent.current?.focus(); onSelect(s.id); }}
                   style={{ position: "absolute", top: 0, left: 0, right: 0, height: v.size, transform: `translateY(${v.start}px)` }}
                   className={cn(
                     "flex items-center gap-4 border-b border-line/60 px-5",
@@ -106,7 +117,7 @@ export function SkillList({
                   )}
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[13px] font-medium">{s.name}</div>
+                    <div className="flex min-w-0 items-center gap-2"><span className="truncate text-[13px] font-medium">{s.name}</span>{maintenance.states.get(s.id)?.status === "available" && <Chip title={t("update.available")}>{t("update.available")}</Chip>}</div>
                     <div className="truncate text-[12px] text-muted">{s.description || t("list.noDescription")}</div>
                   </div>
                   <div className={cn(COLS.agents, "flex-wrap items-center gap-1")}>
@@ -120,7 +131,7 @@ export function SkillList({
                   </div>
                   <div className={cn(metricCellClass("installed"), "text-[12px] text-muted tabular-nums")}>{date(s.installedAt)}</div>
                   <div className={cn(metricCellClass("last"), "text-[12px] tabular-nums", s.usage.lastUsed ? "text-fg/80" : "text-faint")}>
-                    {rel(s.usage.lastUsed, now)}
+                    {s.usage.lastUsed ? rel(s.usage.lastUsed, now) : t("list.noRecord")}
                   </div>
                   <div className={cn(metricCellClass("uses"), "text-[12px] text-muted tabular-nums")}>{s.usage.total || ""}</div>
                   <div className={COLS.heat}>
