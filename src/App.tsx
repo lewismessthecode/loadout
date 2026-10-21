@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Plus, RefreshCw, Search } from "lucide-react";
 import { api } from "@/lib/api";
+import { invalidateCatalog, onSkillsChanged } from "@/lib/reload";
 import { ALL, applyFilters, countAll, type Filter, type Sort, type SortKey, type View } from "@/lib/filter";
 import { agentLabel } from "@/lib/format";
 import { useI18n, type MessageKey } from "@/lib/i18n";
@@ -55,6 +56,13 @@ function Shell() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [install, setInstall] = useState<InstallPreset | null>(null);
   const search = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const pending = onSkillsChanged(() => invalidateCatalog(queryClient));
+    return () => {
+      void pending.then((stop) => stop());
+    };
+  }, []);
 
   const skills = skillsQ.data ?? [];
   const agents = agentsQ.data ?? [];
@@ -114,9 +122,8 @@ function Shell() {
             aria-label={t("app.rescan")}
             title={t("app.rescanTitle")}
             onClick={() => {
-              queryClient.invalidateQueries({ queryKey: ["skills"] });
-              queryClient.invalidateQueries({ queryKey: ["agents"] });
-              queryClient.invalidateQueries({ queryKey: ["heat"] });
+              invalidateCatalog(queryClient);
+              void queryClient.invalidateQueries({ queryKey: ["heat"] });
             }}
             className="w-7 justify-center px-0"
           >

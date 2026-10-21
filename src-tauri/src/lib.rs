@@ -6,6 +6,7 @@ pub mod model;
 pub mod scan;
 pub mod service;
 pub mod usage;
+mod watch;
 
 use commands::AppState;
 use std::sync::{Arc, Mutex};
@@ -19,10 +20,18 @@ pub fn run() {
         .join("Loadout")
         .join("loadout.db");
     let index = Index::open(&db).expect("failed to open usage index");
+    let watched_home = home.clone();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .manage(AppState { home, index: Arc::new(Mutex::new(index)) })
+        .manage(AppState {
+            home,
+            index: Arc::new(Mutex::new(index)),
+        })
+        .setup(move |app| {
+            watch::start(app.handle().clone(), watched_home);
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::list_agents,
             commands::list_skills,

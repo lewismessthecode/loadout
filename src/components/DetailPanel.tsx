@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { ArrowUpRight, Download, FolderOpen, Link2, Trash2, X } from "lucide-react";
 import { api } from "@/lib/api";
+import { invalidateCatalog } from "@/lib/reload";
 import { agentLabel, homeRelative } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import type { AgentInfo, Skill } from "@/lib/types";
@@ -56,7 +57,7 @@ export function DetailPanel({
   const [descOpen, setDescOpen] = useState(false);
   const [tagDraft, setTagDraft] = useState("");
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ["skills"] });
+  const refresh = () => invalidateCatalog(qc);
 
   const tagMut = useMutation({
     mutationFn: (tags: string[]) => api.setTags(skill.id, tags),

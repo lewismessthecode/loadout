@@ -20,12 +20,23 @@ pub struct Meta {
 
 const SKIP_DIRS: &[&str] = &["node_modules", ".git", "target", "dist", "__pycache__"];
 
+pub(crate) fn skipped_dir_name(name: &str) -> bool {
+    SKIP_DIRS.contains(&name)
+}
+
 pub fn scan(home: &Path, agents: &[AgentDef]) -> Vec<Found> {
     let mut out = Vec::new();
     for agent in agents {
         for root in agent.roots {
             let dir = home.join(root.rel);
-            walk(&dir, 0, root.kind.max_depth(), agent.id, root.kind, &mut out);
+            walk(
+                &dir,
+                0,
+                root.kind.max_depth(),
+                agent.id,
+                root.kind,
+                &mut out,
+            );
         }
     }
     out
@@ -44,11 +55,13 @@ fn walk(
     entries.sort_by_key(|e| e.file_name());
     for entry in entries {
         let name = entry.file_name().to_string_lossy().to_string();
-        if SKIP_DIRS.contains(&name.as_str()) {
+        if skipped_dir_name(&name) {
             continue;
         }
         let path = entry.path();
-        let Ok(meta) = fs::metadata(&path) else { continue };
+        let Ok(meta) = fs::metadata(&path) else {
+            continue;
+        };
         if !meta.is_dir() {
             continue;
         }
@@ -57,7 +70,13 @@ fn walk(
                 .map(|m| m.file_type().is_symlink())
                 .unwrap_or(false);
             let canonical = fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
-            out.push(Found { agent, kind, path, canonical, is_symlink });
+            out.push(Found {
+                agent,
+                kind,
+                path,
+                canonical,
+                is_symlink,
+            });
         } else if depth + 1 < max_depth && (!name.starts_with('.') || name == ".system") {
             walk(&path, depth + 1, max_depth, agent, kind, out);
         }
@@ -89,11 +108,16 @@ pub fn parse_frontmatter(text: &str) -> Meta {
     while i < block.len() {
         let line = block[i];
         i += 1;
-        let Some((key, rest)) = split_key(line) else { continue };
+        let Some((key, rest)) = split_key(line) else {
+            continue;
+        };
         let mut parts: Vec<String> = Vec::new();
         let first = rest.trim();
         let is_block_indicator = matches!(first.chars().next(), Some('>') | Some('|'))
-            && first.chars().skip(1).all(|c| c == '-' || c == '+' || c.is_ascii_digit());
+            && first
+                .chars()
+                .skip(1)
+                .all(|c| c == '-' || c == '+' || c.is_ascii_digit());
         if !first.is_empty() && !is_block_indicator {
             parts.push(first.to_string());
         }
@@ -127,7 +151,11 @@ fn split_key(line: &str) -> Option<(&str, &str)> {
     }
     let idx = line.find(':')?;
     let key = &line[..idx];
-    if key.is_empty() || !key.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
+    if key.is_empty()
+        || !key
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    {
         return None;
     }
     Some((key, &line[idx + 1..]))
@@ -139,7 +167,11 @@ fn unquote(s: &str) -> String {
         let b = s.as_bytes();
         if (b[0] == b'"' && b[b.len() - 1] == b'"') || (b[0] == b'\'' && b[b.len() - 1] == b'\'') {
             let inner = &s[1..s.len() - 1];
-            return if b[0] == b'"' { inner.replace("\\\"", "\"") } else { inner.replace("''", "'") };
+            return if b[0] == b'"' {
+                inner.replace("\\\"", "\"")
+            } else {
+                inner.replace("''", "'")
+            };
         }
     }
     s.to_string()
@@ -164,7 +196,9 @@ mod tests {
 
     #[test]
     fn frontmatter_plain_and_quoted() {
-        let m = parse_frontmatter("---\nname: tdd\ndescription: Test-driven development. Use when \"x\".\n---\n# body");
+        let m = parse_frontmatter(
+            "---\nname: tdd\ndescription: Test-driven development. Use when \"x\".\n---\n# body",
+        );
         assert_eq!(m.name.as_deref(), Some("tdd"));
         assert_eq!(m.description, "Test-driven development. Use when \"x\".");
         let m = parse_frontmatter("---\nname: \"a\"\ndescription: 'it''s fine'\n---\n");
@@ -184,12 +218,25 @@ mod tests {
     }
 
     #[test]
+    fn skipped_dir_name_rejects_dependency_dirs() {
+        assert!(skipped_dir_name("node_modules"));
+        assert!(skipped_dir_name(".git"));
+        assert!(!skipped_dir_name("skills"));
+    }
+
+    #[test]
     fn frontmatter_missing() {
         assert_eq!(parse_frontmatter("# no frontmatter"), Meta::default());
     }
 
-    static ROOTS: [Root; 1] = [Root { rel: ".agents/skills", kind: RootKind::Skills }];
-    static CURSOR: [Root; 1] = [Root { rel: ".cursor/skills", kind: RootKind::Skills }];
+    static ROOTS: [Root; 1] = [Root {
+        rel: ".agents/skills",
+        kind: RootKind::Skills,
+    }];
+    static CURSOR: [Root; 1] = [Root {
+        rel: ".cursor/skills",
+        kind: RootKind::Skills,
+    }];
 
     #[test]
     fn scan_finds_dirs_and_symlinks() {
@@ -203,17 +250,33 @@ mod tests {
         fs::create_dir_all(home.path().join(".agents/skills/not-a-skill")).unwrap();
         fs::create_dir_all(home.path().join(".cursor/skills")).unwrap();
         std::os::unix::fs::symlink(&skill, home.path().join(".cursor/skills/tdd")).unwrap();
-        std::os::unix::fs::symlink("/nonexistent", home.path().join(".cursor/skills/broken")).unwrap();
+        std::os::unix::fs::symlink("/nonexistent", home.path().join(".cursor/skills/broken"))
+            .unwrap();
 
         let agents = [
-            AgentDef { id: "shared", label: "s", cli_name: None, roots: &ROOTS, usage: UsageSource::None },
-            AgentDef { id: "cursor", label: "c", cli_name: Some("cursor"), roots: &CURSOR, usage: UsageSource::None },
+            AgentDef {
+                id: "shared",
+                label: "s",
+                cli_name: None,
+                roots: &ROOTS,
+                usage: UsageSource::None,
+            },
+            AgentDef {
+                id: "cursor",
+                label: "c",
+                cli_name: Some("cursor"),
+                roots: &CURSOR,
+                usage: UsageSource::None,
+            },
         ];
         let found = scan(home.path(), &agents);
         assert_eq!(found.len(), 3);
         let link = found.iter().find(|f| f.agent == "cursor").unwrap();
         assert!(link.is_symlink);
-        let real = found.iter().find(|f| f.agent == "shared" && f.path.ends_with("tdd")).unwrap();
+        let real = found
+            .iter()
+            .find(|f| f.agent == "shared" && f.path.ends_with("tdd"))
+            .unwrap();
         assert!(!real.is_symlink);
         assert_eq!(link.canonical, real.canonical);
         assert!(found.iter().any(|f| f.path.ends_with(".system/imagegen")));

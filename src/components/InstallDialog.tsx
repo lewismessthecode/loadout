@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { invalidateCatalog } from "@/lib/reload";
 import { agentLabel } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import type { AgentInfo } from "@/lib/types";
@@ -53,7 +54,7 @@ export function InstallDialog({
       setLog((l) => [...l, String(e)]);
       setState("failed");
     }
-    qc.invalidateQueries({ queryKey: ["skills"] });
+    invalidateCatalog(qc);
   };
 
   const toggle = (id: string) =>
