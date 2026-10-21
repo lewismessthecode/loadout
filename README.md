@@ -9,11 +9,7 @@
   See every skill, where it came from, and how often you actually use it.
 </p>
 
-![Loadout in light mode](docs/screenshot-light.png)
-
-![Loadout in dark mode](docs/screenshot-dark.png)
-
-![Loadout in Chinese](docs/screenshot-zh.png)
+![Loadout](docs/loadout-launch.mp4)
 
 Skills pile up. Claude Code, Codex, Cursor, OpenCode and the shared `~/.agents` folder each keep their own copy, plugins add more, and after a few months nobody remembers which ones are used. Loadout scans all of those folders, merges them into one list, and reads your own session logs to show when each skill was last used.
 
