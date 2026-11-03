@@ -100,8 +100,6 @@ function Shell() {
       s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: key === "name" ? "asc" : "desc" },
     );
 
-  const used = skills.filter((s) => s.usage.total > 0).length;
-
   return (
     <div className="flex h-screen">
       <Sidebar filter={filter} onFilter={setFilter} counts={counts} agents={agents} />
@@ -109,7 +107,7 @@ function Shell() {
       <main className="flex min-w-0 flex-1 flex-col bg-bg">
         <div data-tauri-drag-region className="flex h-[52px] shrink-0 items-end gap-3 px-5 pb-2">
           <div className="pointer-events-none min-w-0 flex-1">
-            <h1 className="truncate text-[15px] leading-none font-semibold">
+            <h1 className="truncate text-[15px] leading-none font-medium">
               {filterTitle(filter, agents, t)}
             </h1>
           </div>
@@ -139,14 +137,13 @@ function Shell() {
           </Button>
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 px-5 pt-1 pb-3 text-[12px] text-muted">
-          <span>{t("app.summary", { n: visible.length, total: skills.length, used })}</span>
+        <div className="flex min-h-10 shrink-0 flex-wrap items-center gap-2 px-5 pb-2 text-[12px] text-muted">
+          <span className="mr-auto tabular-nums" aria-label={t("app.visibleSkills", { n: visible.length })}>{visible.length}</span>
           {availableCount > 0 && <Button disabled={maintenance.busy !== null} onClick={() => setUpdatesOpen(true)}>{t("update.reviewAvailable", { n: availableCount })}</Button>}
           <Button disabled={maintenance.busy !== null || maintenance.checking.size > 0 || eligibleIds.length === 0} title={t("update.checkVisibleTitle")} onClick={() => void maintenance.check(eligibleIds)}>
             <RefreshCw size={13} className={maintenance.checking.size > 0 ? "animate-spin" : ""} /> {maintenance.checking.size > 0 ? t("update.checking") : t("update.checkVisible")}
           </Button>
-          <span className="flex-1" />
-          <button onClick={() => setScanOpen(true)} className="inline-flex items-center gap-1.5 text-muted hover:text-fg">
+          <button onClick={() => setScanOpen(true)} className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-muted hover:bg-hover hover:text-fg">
             <FolderSearch size={12} /> {t("scan.title")}
           </button>
         </div>

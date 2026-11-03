@@ -94,6 +94,7 @@ export function InstallDialog({
           <input
             value={skill}
             onChange={(e) => setSkill(e.target.value)}
+            placeholder={t("install.allSkills")}
             disabled={state === "running"}
             className="h-8 w-full rounded-md border border-line bg-bg px-2.5 text-[13px] outline-none focus:border-faint"
           />
@@ -123,7 +124,6 @@ export function InstallDialog({
               </div>}
             </div>
           )}
-          <div className="mt-1 text-[11.5px] text-faint">{t("install.globalNote")}</div>
           {chosen.size === 0 && <div className="mt-1 text-[12px] text-muted">{t("install.chooseAgent")}</div>}
         </div>
 

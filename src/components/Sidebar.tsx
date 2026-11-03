@@ -33,7 +33,7 @@ function Item({
       onClick={onClick}
       title={title}
       className={cn(
-        "flex h-7 w-full items-center gap-2 rounded-md px-2 text-left text-[13px]",
+        "flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[13px]",
         active ? "bg-selected font-medium" : "text-fg/80 hover:bg-hover",
       )}
     >
@@ -148,7 +148,7 @@ function LangMenu() {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="mt-5">
-      <div className="px-2 pb-1 text-[11px] font-medium tracking-wide text-faint uppercase">{title}</div>
+      <div className="px-2 pb-2 text-[12px] font-medium text-muted">{title}</div>
       {children}
     </div>
   );
@@ -171,7 +171,7 @@ export function Sidebar({
   const sources = allSources ? counts.sources : counts.sources.slice(0, 8);
 
   return (
-    <aside className="flex h-full w-[236px] shrink-0 flex-col border-r border-line bg-sidebar">
+    <aside className="flex h-full w-[240px] shrink-0 flex-col border-r border-line bg-sidebar">
       <div data-tauri-drag-region className="h-[52px] shrink-0" />
       <nav className="flex-1 overflow-y-auto px-2 pb-4">
         <div>
@@ -242,7 +242,7 @@ export function Sidebar({
           </Section>
         )}
       </nav>
-      <div className="flex shrink-0 items-center gap-1.5 border-t border-line p-2.5">
+      <div className="flex shrink-0 items-center gap-2 border-t border-line p-2">
         <div className="min-w-0 flex-1">
           <ThemeSwitch />
         </div>

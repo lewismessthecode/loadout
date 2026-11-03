@@ -11,7 +11,7 @@ import { Chip } from "./ui";
 import { MiniHeat } from "./Heatmap";
 import { metricCellClass, sortHeadClass, type SortCol } from "./sortColumns";
 
-const ROW_H = 58;
+const ROW_H = 60;
 
 function SortHead({
   label,

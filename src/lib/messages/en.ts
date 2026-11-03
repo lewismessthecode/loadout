@@ -25,6 +25,7 @@ export const en = {
   "app.rescanTitle": "Rescan skills and usage",
   "app.scanning": "Scanning skills…",
   "app.summary": "{n} of {total} skills · {used} with recorded activity",
+  "app.visibleSkills": "{n} visible skills",
 
   "sidebar.showMore": "Show {n} more",
   "sidebar.sources": "Sources",
@@ -80,6 +81,7 @@ export const en = {
   "remove.title": "Move to Trash?",
 
   "install.alreadyInstalled": "installed",
+  "install.allSkills": "All skills",
   "install.done": "Done",
   "install.exitCode": "exit code {code}",
   "install.failed": "Install failed.",
@@ -87,9 +89,9 @@ export const en = {
   "install.installTo": "Install to",
   "install.installing": "Installing…",
   "install.ok": "Installed. List refreshed.",
-  "install.repo": "Repository (npx skills add)",
+  "install.repo": "Repository",
   "install.repoPlaceholder": "owner/repo or https://github.com/owner/repo",
-  "install.skillName": "Skill name (optional, installs all repository skills if empty)",
+  "install.skillName": "Skill name (optional)",
   "install.title": "Install skills",
   "install.otherAgents": "Other supported agents",
   "install.noDetected": "No installed agents detected. Choose another supported agent below.",

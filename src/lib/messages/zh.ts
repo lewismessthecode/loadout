@@ -27,6 +27,7 @@ export const zh: Record<keyof typeof en, string> = {
   "app.rescanTitle": "重新扫描技能和使用记录",
   "app.scanning": "正在扫描技能…",
   "app.summary": "显示 {n} / {total} 个技能 · {used} 个有活动记录",
+  "app.visibleSkills": "显示 {n} 个技能",
 
   "sidebar.showMore": "展开另外 {n} 项",
   "sidebar.sources": "来源",
@@ -82,6 +83,7 @@ export const zh: Record<keyof typeof en, string> = {
   "remove.title": "移到废纸篓？",
 
   "install.alreadyInstalled": "已安装",
+  "install.allSkills": "全部技能",
   "install.done": "完成",
   "install.exitCode": "退出码 {code}",
   "install.failed": "安装失败。",
@@ -89,9 +91,9 @@ export const zh: Record<keyof typeof en, string> = {
   "install.installTo": "安装到",
   "install.installing": "正在安装…",
   "install.ok": "安装完成，列表已刷新。",
-  "install.repo": "仓库（npx skills add）",
+  "install.repo": "仓库",
   "install.repoPlaceholder": "owner/repo 或 https://github.com/owner/repo",
-  "install.skillName": "技能名称（可选，留空则安装仓库中的全部技能）",
+  "install.skillName": "技能名称（可选）",
   "install.title": "安装技能",
   "install.otherAgents": "其他支持的 Agent",
   "install.noDetected": "未检测到已安装的 Agent。请在下方选择其他支持的 Agent。",

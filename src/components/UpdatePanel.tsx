@@ -44,7 +44,7 @@ export function UpdatePanel({ skill, agents }: { skill: Skill; agents: AgentInfo
 
   return (
     <section className="border-t border-line px-5 py-4">
-      <h3 className="mb-2 text-[11px] font-medium tracking-wide text-faint uppercase">{t("update.section")}</h3>
+      <h3 className="mb-3 text-[12px] font-medium text-muted">{t("update.section")}</h3>
       <div className="space-y-2 text-[12px] text-muted" aria-live="polite">
         {outcome && <div className="rounded-md border border-line p-2.5">
           <p className="text-fg">{t("update.updated")}</p>
@@ -53,12 +53,11 @@ export function UpdatePanel({ skill, agents }: { skill: Skill; agents: AgentInfo
           </button>
           <p className="selectable mt-1 break-all font-mono text-[10.5px]">{outcome.backupPath}</p>
         </div>}
-        {state.status === "unchecked" && <p>{t("update.unchecked")}</p>}
         {state.status === "unsupported" && <p>{unsupportedMessages[state.reason] ? t(unsupportedMessages[state.reason]) : state.reason}</p>}
         {state.status === "current" && <div><p className="text-fg">{t("update.current")}</p><p className="mt-1">{t("update.checkedAt", { when: rel(state.checkedAt) })}</p></div>}
         {state.status === "available" && <p className="text-fg">{t("update.available")}</p>}
         {state.status === "failed" && <p className="selectable text-danger">{state.message}</p>}
-        {state.status !== "unsupported" && <p className="text-[11.5px]">{t("update.unverified")}</p>}
+        {state.status === "current" && <p className="text-[12px]">{t("update.unverified")}</p>}
         {maintenance.inspectionError && <p className="selectable text-danger">{maintenance.inspectionError}</p>}
         {error && <p className="selectable text-danger">{error}</p>}
         <div className="flex flex-wrap gap-2">

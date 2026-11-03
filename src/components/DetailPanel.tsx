@@ -15,8 +15,8 @@ import { UpdatePanel } from "./UpdatePanel";
 function Section({ title, right, children }: { title: string; right?: ReactNode; children: ReactNode }) {
   return (
     <section className="border-t border-line px-5 py-4">
-      <div className="mb-2.5 flex items-center justify-between">
-        <h3 className="text-[11px] font-medium tracking-wide text-faint uppercase">{title}</h3>
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-[12px] font-medium text-muted">{title}</h3>
         {right}
       </div>
       {children}
@@ -105,7 +105,7 @@ export function DetailPanel({
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="px-5 pb-4">
-          <h2 className="selectable text-[18px] leading-tight font-semibold">{skill.name}</h2>
+          <h2 className="selectable text-[18px] leading-tight font-medium">{skill.name}</h2>
           <p className={`selectable mt-1.5 text-[13px] leading-snug text-muted ${descOpen ? "" : "line-clamp-4"}`}>
             {skill.description || t("detail.noDescription")}
           </p>
@@ -189,8 +189,7 @@ export function DetailPanel({
           title={t("detail.activity")}
           right={<span className="text-[11px] text-muted">{uses(skill.usage.total)}</span>}
         >
-          <p className="mb-3 text-[11.5px] leading-relaxed text-muted">{supportedAgents.length ? t("detail.activityCoverage", { agents: supportedAgents.join(", ") }) : t("detail.noActivitySupport")}</p>
-          {skill.usage.total === 0 && supportedAgents.length > 0 && <p className="mb-3 text-[12px] text-muted">{t("detail.noRecord")}</p>}
+          {supportedAgents.length === 0 && <p className="text-[12px] text-muted">{t("detail.noActivitySupport")}</p>}
           {supportedAgents.length > 0 && <FullHeat daily={skill.usage.daily} />}
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-muted">
             <span>{skill.usage.lastUsed ? t("detail.lastUsed", { when: rel(skill.usage.lastUsed) }) : t("list.noRecord")}</span>
